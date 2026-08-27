@@ -22,6 +22,23 @@ pub async fn check_source(pool: &SqlitePool, id: &str) -> Result<CheckResult> {
         .ok_or_else(|| anyhow!("Source not found"))?;
 
     let now = Utc::now();
+    if let Some(last_checked) = source
+        .last_checked
+        .as_deref()
+        .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
+    {
+        if now
+            .signed_duration_since(last_checked.with_timezone(&Utc))
+            .num_seconds()
+            < 30
+        {
+            return Ok(CheckResult {
+                outcome: "cooldown".into(),
+                message: "This source was checked less than 30 seconds ago.".into(),
+                change_id: None,
+            });
+        }
+    }
     let next = now + ChronoDuration::minutes(source.interval_minutes);
     let result = fetch_extract(&source).await;
     match result {
@@ -130,7 +147,13 @@ async fn fetch_extract(source: &Source) -> Result<String> {
         bail!("Source is larger than the 2 MB safety limit")
     }
     let html = String::from_utf8_lossy(&bytes);
-    extract(&html, &source.selector, &source.extract_mode)
+    let extracted = extract(&html, &source.selector, &source.extract_mode)?;
+    if extracted.len() > 250_000 {
+        bail!(
+            "Selected content is larger than the 250 KB extraction limit; use a narrower selector"
+        )
+    }
+    Ok(extracted)
 }
 
 async fn validate_public_url(raw: &str) -> Result<Url> {
@@ -189,25 +212,77 @@ async fn ensure_robots_allowed(client: &Client, page: &Url) -> Result<()> {
         return Ok(());
     }
     let text = response.text().await.unwrap_or_default();
-    let mut applies = false;
-    let path = page.path();
-    for raw in text.lines() {
+    let target = match page.query() {
+        Some(query) => format!("{}?{query}", page.path()),
+        None => page.path().to_owned(),
+    };
+    if robots_allows(&text, &target) {
+        Ok(())
+    } else {
+        bail!("Blocked by this site's robots.txt")
+    }
+}
+
+fn robots_allows(text: &str, target: &str) -> bool {
+    let product = "changediffinbox";
+    let mut groups: Vec<(Vec<String>, Vec<(bool, String)>)> = Vec::new();
+    let mut agents = Vec::new();
+    let mut rules = Vec::new();
+
+    for raw in text.lines().chain(std::iter::once("")) {
         let line = raw.split('#').next().unwrap_or("").trim();
+        if line.is_empty() {
+            if !agents.is_empty() && !rules.is_empty() {
+                groups.push((std::mem::take(&mut agents), std::mem::take(&mut rules)));
+            }
+            continue;
+        }
         let Some((key, value)) = line.split_once(':') else {
             continue;
         };
-        match key.trim().to_ascii_lowercase().as_str() {
-            "user-agent" => {
-                let agent = value.trim().to_ascii_lowercase();
-                applies = agent == "*" || USER_AGENT.to_ascii_lowercase().starts_with(&agent);
+        let key = key.trim().to_ascii_lowercase();
+        let value = value.trim();
+        if key == "user-agent" {
+            if !rules.is_empty() {
+                groups.push((std::mem::take(&mut agents), std::mem::take(&mut rules)));
             }
-            "disallow" if applies && !value.trim().is_empty() && path.starts_with(value.trim()) => {
-                bail!("Blocked by this site's robots.txt")
+            agents.push(value.to_ascii_lowercase());
+        } else if (key == "allow" || key == "disallow") && !agents.is_empty() {
+            if !value.is_empty() {
+                rules.push((key == "allow", value.to_owned()));
             }
-            _ => {}
         }
     }
-    Ok(())
+
+    let specificity = groups
+        .iter()
+        .flat_map(|(agents, _)| agents)
+        .filter_map(|agent| {
+            if agent == "*" {
+                Some(0)
+            } else if product.starts_with(agent) {
+                Some(agent.len())
+            } else {
+                None
+            }
+        })
+        .max();
+    let Some(specificity) = specificity else {
+        return true;
+    };
+    let mut matching: Vec<(bool, &str)> = groups
+        .iter()
+        .filter(|(agents, _)| {
+            agents.iter().any(|agent| {
+                (agent == "*" && specificity == 0)
+                    || (agent != "*" && agent.len() == specificity && product.starts_with(agent))
+            })
+        })
+        .flat_map(|(_, rules)| rules.iter().map(|(allow, path)| (*allow, path.as_str())))
+        .filter(|(_, path)| target.starts_with(path.trim_end_matches('$')))
+        .collect();
+    matching.sort_by_key(|(allow, path)| (path.len(), *allow));
+    matching.last().map(|(allow, _)| *allow).unwrap_or(true)
 }
 
 pub fn extract(html: &str, selector: &str, mode: &str) -> Result<String> {
@@ -321,5 +396,12 @@ mod tests {
     fn change_threshold_math() {
         assert_eq!(change_ratio("same", "same"), 0.0);
         assert!(change_ratio("price is 10", "price is 12") > 0.0);
+    }
+    #[test]
+    fn robots_uses_specific_group_and_longest_rule() {
+        let robots = "User-agent: *\nDisallow: /private\nAllow: /private/status\n\nUser-agent: Changediffinbox\nUser-agent: AnotherBot\nDisallow: /internal";
+        assert!(robots_allows(robots, "/private/status"));
+        assert!(robots_allows(robots, "/private/other"));
+        assert!(!robots_allows(robots, "/internal/build"));
     }
 }

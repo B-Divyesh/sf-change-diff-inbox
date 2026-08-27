@@ -134,9 +134,17 @@ async fn update_source(
     Json(input): Json<SourceInput>,
 ) -> Result<Json<Source>, ApiError> {
     let (selector, mode, threshold, interval) = validate(&input)?;
-    let result = sqlx::query("UPDATE sources SET name=?,url=?,selector=?,extract_mode=?,threshold=?,interval_minutes=?,next_check=? WHERE id=?")
+    let existing = sqlx::query_as::<_, Source>("SELECT * FROM sources WHERE id=?")
+        .bind(&id)
+        .fetch_optional(&pool)
+        .await?
+        .ok_or_else(|| ApiError(StatusCode::NOT_FOUND, "Source not found".into()))?;
+    let extraction_changed = existing.url != input.url.trim()
+        || existing.selector != selector
+        || existing.extract_mode != mode;
+    let result = sqlx::query("UPDATE sources SET name=?,url=?,selector=?,extract_mode=?,threshold=?,interval_minutes=?,next_check=?, baseline=CASE WHEN ? THEN NULL ELSE baseline END, last_status=CASE WHEN ? THEN 'new' ELSE last_status END WHERE id=?")
         .bind(input.name.trim()).bind(input.url.trim()).bind(selector).bind(mode).bind(threshold).bind(interval)
-        .bind((Utc::now() + Duration::minutes(interval)).to_rfc3339()).bind(&id).execute(&pool).await?;
+        .bind((Utc::now() + Duration::minutes(interval)).to_rfc3339()).bind(extraction_changed).bind(extraction_changed).bind(&id).execute(&pool).await?;
     if result.rows_affected() == 0 {
         return Err(ApiError(StatusCode::NOT_FOUND, "Source not found".into()));
     }

@@ -11,6 +11,7 @@ pub struct Source {
     pub threshold: f64,
     pub interval_minutes: i64,
     pub enabled: i64,
+    #[serde(skip_serializing)]
     pub baseline: Option<String>,
     pub last_checked: Option<String>,
     pub last_status: String,

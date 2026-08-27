@@ -24,6 +24,14 @@ pub fn app(pool: SqlitePool, frontend_dir: &str) -> Router {
     Router::new()
         .route("/health", get(routes::health))
         .nest("/api", routes::api())
+        .route_service(
+            "/privacy",
+            ServeFile::new(format!("{frontend_dir}/index.html")),
+        )
+        .route_service(
+            "/terms",
+            ServeFile::new(format!("{frontend_dir}/index.html")),
+        )
         .fallback_service(fallback)
         .with_state(pool)
         .layer(middleware::from_fn(security_headers))
@@ -33,6 +41,7 @@ pub fn app(pool: SqlitePool, frontend_dir: &str) -> Router {
 }
 
 async fn security_headers(request: Request<Body>, next: Next) -> Response {
+    let path = request.uri().path().to_owned();
     let mut response = next.run(request).await;
     let headers = response.headers_mut();
     headers.insert(
@@ -50,5 +59,18 @@ async fn security_headers(request: Request<Body>, next: Next) -> Response {
         .or_insert(HeaderValue::from_static(
             "camera=(), microphone=(), geolocation=()",
         ));
+    if path.starts_with("/assets/index-") || path.starts_with("/fonts/") {
+        headers.insert(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("public, max-age=31536000, immutable"),
+        );
+    } else if path == "/" || path.ends_with(".html") || path == "/sw.js" {
+        headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
+    } else if path.starts_with("/assets/") {
+        headers.insert(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("public, max-age=86400"),
+        );
+    }
     response
 }

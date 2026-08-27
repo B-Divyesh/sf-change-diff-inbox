@@ -109,3 +109,52 @@ async fn validation_errors_are_actionable() {
         .unwrap()
         .contains("Name"));
 }
+
+#[tokio::test]
+async fn check_and_review_routes_report_state() {
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect("sqlite::memory:")
+        .await
+        .unwrap();
+    sqlx::migrate!().run(&pool).await.unwrap();
+    sqlx::query("INSERT INTO sources (id,name,url,selector,created_at) VALUES ('source-1','Vendor plans','https://example.com','h1','2026-08-27T00:00:00Z')")
+        .execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO changes (id,source_id,previous_text,current_text,change_ratio,summary,created_at) VALUES ('change-1','source-1','ten','twelve',0.5,'Price changed','2026-08-27T00:00:00Z')")
+        .execute(&pool).await.unwrap();
+    let router = app(pool, "frontend/dist");
+
+    let reviewed = router
+        .clone()
+        .oneshot(
+            Request::patch("/api/changes/change-1")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"review_state":"reviewed","useful":true}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(reviewed.status(), StatusCode::OK);
+
+    let changes = router
+        .clone()
+        .oneshot(
+            Request::get("/api/changes?state=reviewed")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body = json_body(changes).await;
+    assert_eq!(body[0]["useful"], 1);
+
+    let missing = router
+        .oneshot(
+            Request::post("/api/sources/missing/check")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(missing.status(), StatusCode::BAD_REQUEST);
+}
