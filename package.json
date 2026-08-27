@@ -12,6 +12,9 @@
     "start": "cargo run --release"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "lighthouse": "^13.4.1",
+    "playwright": "^1.62.1",
     "sharp": "^0.35.4"
   }
 }

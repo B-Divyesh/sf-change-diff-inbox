@@ -18,7 +18,7 @@
   let stats: Stats = { sources:0, unread:0, useful:0, rated:0 };
   let stateFilter = 'all';
   let sourceFilter = 'all';
-  let loading = true;
+  let loading = false;
   let loadError = '';
   let online = navigator.onLine;
   let expanded = '';
@@ -42,8 +42,8 @@
 
   onMount(() => {
     handleLicense();
-    loadAll();
-    const onOnline = () => { online = true; loadAll(); };
+    loadAll(false);
+    const onOnline = () => { online = true; loadAll(false); };
     const onOffline = () => online = false;
     window.addEventListener('online', onOnline); window.addEventListener('offline', onOffline);
     return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline); };
@@ -58,8 +58,8 @@
     return response.status === 204 ? undefined as T : response.json();
   }
 
-  async function loadAll() {
-    loading = true; loadError = '';
+  async function loadAll(showLoading = false) {
+    loading = showLoading; loadError = '';
     try {
       [sources, changes, stats] = await Promise.all([api('/api/sources'), api('/api/changes'), api('/api/stats')]);
     } catch (error) { loadError = error instanceof Error ? error.message : 'Could not load the inbox'; }
@@ -190,14 +190,14 @@
   </article>
 {:else}
   {#if loadError}
-    <section class="state-panel" role="alert"><span class="state-icon">!</span><h1>The inbox could not connect</h1><p>{loadError}. Check that the server is running, then try again.</p><button class="primary" on:click={loadAll}>Try again</button></section>
+    <section class="state-panel" role="alert"><span class="state-icon">!</span><h1>The inbox could not connect</h1><p>{loadError}. Check that the server is running, then try again.</p><button class="primary" on:click={()=>loadAll(true)}>Try again</button></section>
   {:else if loading}
     <section class="loading-state" aria-live="polite"><div class="pulse-line wide"></div><div class="pulse-line"></div><div class="pulse-card"></div><span>Opening your observation desk…</span></section>
   {:else if tab === 'inbox'}
     {#if sources.length === 0}
       <section class="hero">
         <div class="hero-copy"><p class="eyebrow"><span></span> Semantic change monitoring</p><h1>Watch the parts that matter. Ignore the rest.</h1><p class="lede">Select a docs section, pricing table, code block, or structured record. We turn meaningful changes into one quiet, reviewable inbox.</p><div class="hero-actions"><button class="primary" on:click={openNew}>Add your first source <span aria-hidden="true">→</span></button><span>Self-hosted core · no tracking</span></div><ul class="signal-list"><li><b>01</b><span><strong>Extract</strong> one stable semantic region</span></li><li><b>02</b><span><strong>Filter</strong> changes below your noise threshold</span></li><li><b>03</b><span><strong>Review</strong> and score every alert</span></li></ul></div>
-        <figure class="hero-art"><picture><source type="image/avif" srcset="/assets/hero-640.avif 640w, /assets/hero-960.avif 960w" sizes="(max-width: 800px) 92vw, 52vw"><source type="image/webp" srcset="/assets/hero-640.webp 640w, /assets/hero-960.webp 960w" sizes="(max-width: 800px) 92vw, 52vw"><img src="/assets/hero-960.webp" width="960" height="640" alt="Translucent data sheets pass beneath a glass lens that isolates one amber change" fetchpriority="high" decoding="async"></picture><figcaption><span>Observe / isolate / decide</span><b>Semantic signal</b></figcaption></figure>
+        <figure class="hero-art"><picture><source type="image/avif" srcset="/assets/hero-640.avif 640w, /assets/hero-960.avif 960w" sizes="(max-width: 800px) 92vw, 52vw"><source type="image/webp" srcset="/assets/hero-640.webp 640w, /assets/hero-960.webp 960w" sizes="(max-width: 800px) 92vw, 52vw"><img src="/assets/hero-960.jpg" width="960" height="640" alt="Translucent data sheets pass beneath a glass lens that isolates one amber change" fetchpriority="high" decoding="async"></picture><figcaption><span>Observe / isolate / decide</span><b>Semantic signal</b></figcaption></figure>
       </section>
     {:else}
       <section class="workspace-head"><div><p class="eyebrow"><span></span> Observation desk</p><h1>Changes worth your attention.</h1><p>{stats.unread ? `${stats.unread} item${stats.unread===1?'':'s'} waiting for review.` : 'You are caught up. Watched sources are still checking quietly.'}</p></div><div class="score"><strong>{stats.rated ? `${usefulness}%` : '—'}</strong><span>useful alerts</span><small>{stats.rated} rated</small></div></section>
