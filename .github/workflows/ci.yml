@@ -1,0 +1,37 @@
+name: Quality and container identity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: BUILD_SHA="$GITHUB_SHA" npm run build
+      - name: Build the deployable container with its immutable revision
+        run: docker build --build-arg BUILD_SHA="$GITHUB_SHA" -t change-diff-inbox-ci .
+      - name: Assert the container health endpoint reports that exact revision
+        run: |
+          docker run --detach --rm --name change-diff-inbox-ci --publish 18080:8080 change-diff-inbox-ci
+          trap 'docker stop change-diff-inbox-ci' EXIT
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:18080/health >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          EXPECTED_BUILD_SHA="$GITHUB_SHA" npm run verify:build-identity

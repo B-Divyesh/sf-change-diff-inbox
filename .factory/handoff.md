@@ -1,69 +1,74 @@
-# Change Diff Inbox v1 — verification handoff
+# Change Diff Inbox — repair handoff
 
-## Verification status: **FAIL**
+## Release-blocking QA repair
 
-Candidate `c51139c0ef6eb4b4a4d8e4a3142c9c882b9ca568` was independently verified
-on 2026-08-27 against <https://change-diff-inbox.sociobot.in>. Do **not** ship
-this candidate as-is: its frontend TypeScript check fails and Rust Clippy fails
-with warnings denied. The live asset hashes match the clean candidate build,
-but `/health` reports `build: "container"`, not the immutable candidate SHA.
+This repair resolves the independent verifier failures recorded at
+`f7b3b6c5e9acd6b2db942941c01cb64dbcd806da` for candidate
+`c51139c0ef6eb4b4a4d8e4a3142c9c882b9ca568`.
 
-See [.factory/verification.md](verification.md) for commands, exact output,
-functional/browser/security evidence, and defects by severity. Required next
-steps are to fix the TypeScript/Vite ambient type error, resolve the two Clippy
-findings, inject the real build SHA, and rerun verification.
-
-## Shipped
-
-- A single-container Rust/Axum + SQLite service serving a Svelte/Vite frontend on `PORT` (8080 by default).
-- Public source registry with CSS selector, table, code, and JSON-LD extraction modes; 0–100% noise thresholds; 15-minute through weekly scheduling; manual checks; baseline capture; and source editing/removal.
-- Semantic normalization, compact summaries, word-level before/after review, unread/reviewed/archived states, useful/noise feedback, pilot usefulness score, and ungated CSV export.
-- Fetch safety: http(s)-only validation, no URL credentials, DNS/private-network rejection, no redirects, `robots.txt` checks, 20-second timeout, 2 MB response and 250 KB extraction limits, a 30-second per-source cooldown, a descriptive user agent, and no script execution or anti-bot behavior.
-- First-class empty, loading, backend-error, extraction-error, and offline states. The service worker keeps the application shell available offline; failed fetches never replace the last successful baseline.
-- Responsive 390px layout, full keyboard paths, visible focus styling, 44px targets, reduced-motion treatment, semantic landmarks, plain-language `/privacy` and `/terms`, and secure response headers.
-- Freemium UI: five daily/weekly sources remain useful for free; a clearly priced $39 one-time Pro license unlocks unlimited sources and 15-minute/hourly schedules. Checkout/verification use only the Sociobot API, verification is cached for one day, returned tokens are removed from the URL, and purchase restoration is available.
-- Original generated data-landscape hero with AVIF/WebP responsive exports (12 KB mobile AVIF); provenance and art direction are recorded in `.factory/design.md` and `assets/src/`.
-- Multi-stage, non-root Alpine Dockerfile with health check, persistent `/app/data`, migrations on startup, JSON logging, cache headers, compression, panic containment, and graceful shutdown.
+- Added Vite's ambient client types and a declared frontend `typecheck` script;
+  `import.meta.env.PROD` now type-checks with `tsc --noEmit`.
+- Removed both denied Clippy warnings in the robots parser without changing its
+  behavior: named the nested rules/groups types and combined the equivalent
+  empty-value condition.
+- Made `BUILD_SHA` a required, validated 40-character SHA Docker build
+  argument. The compiled `/health` response reports that exact immutable value
+  rather than the old `container` placeholder.
+- Added a health-route regression plus an exact build-identity probe. CI builds
+  the real container with `GITHUB_SHA`, starts it, and asserts `/health` returns
+  the same SHA. The factory ACR container-build helper now supplies the current
+  full commit SHA as `--build-arg BUILD_SHA=…`.
+- Added GitHub Actions quality CI for type checking, formatting, Clippy with
+  warnings denied, unit/integration tests, release build, and the container
+  identity smoke test.
 
 ## Run and verify
 
 ```sh
-npm install
+npm ci
+npm run check
 npm test
-npm run build
-npm start
+BUILD_SHA="$(git rev-parse HEAD)" npm run build
+docker build --build-arg BUILD_SHA="$(git rev-parse HEAD)" -t change-diff-inbox .
+docker run --rm -p 8080:8080 -v change-diff-data:/app/data change-diff-inbox
 ```
 
-The production frontend lands in `frontend/dist/`; the release server lands at `target/release/change-diff-inbox`. Container usage is documented in `README.md`.
+`npm run check` includes the Vite TypeScript check, `cargo fmt --check`, and
+Clippy with `-D warnings`. To assert an already-running build identity:
 
-## Superseded builder-reported verification
+```sh
+EXPECTED_BUILD_SHA="$(git rev-parse HEAD)" HEALTH_URL=http://127.0.0.1:8080/health npm run verify:build-identity
+```
 
-The following was recorded before the independent verifier run. It is retained
-as historical implementation context only; it is **not an acceptance result**.
-The authoritative result is the FAIL status and exact evidence in
-`.factory/verification.md` above.
+## Verification completed
 
-Builder-reported verification on 2026-08-27:
+- `npm ci`: passed (244 audited packages; zero vulnerabilities reported).
+- `npm run check`: passed (TypeScript, formatting, and denied-warnings Clippy).
+- `npm test`: passed (3 Vitest assertions, 4 Rust watcher unit tests, and 3 API
+  integration tests).
+- `BUILD_SHA=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa npm run build`: passed.
+- The resulting release binary returned
+  `{"build":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","status":"ok"}`
+  from `/health`; `npm run verify:build-identity` passed against it.
+- Factory `verify-url.sh` passed with no load-time console errors: correct
+  title/lang, exactly one h1, main landmark, no missing image alts, and no
+  unlabeled buttons.
+- Playwright Axe desktop (1366×900) and mobile (390×844) audits: zero
+  violations at WCAG A/AA/2.1 AA, including zero serious/critical issues.
 
-- `npm test`: passed — 3 Vitest assertions, 4 Rust watcher unit tests, and 3 API integration tests.
-- `npm run build`: passed from the root — Vite production build plus Rust release build.
-- Production bundle: 65.76 KB JS / 19.18 KB CSS uncompressed; 25.39 KB / 5.22 KB gzip. Two self-hosted font files total 40 KB. Mobile hero AVIF is 12 KB. Lighthouse total transferred payload was 151 KiB.
-- Factory `verify-url.sh` at desktop 1366×900 and mobile 390×844: title present, `lang=en`, exactly one h1, main landmark present, zero missing image alts, zero unlabeled buttons, and zero console/page errors.
-- Axe WCAG A/AA/2.1 AA audit at desktop and mobile: zero violations, including zero serious/critical issues. Raw summary: `.factory/evidence/axe.json`.
-- Lighthouse mobile: **99 performance / 100 accessibility / 100 best practices / 100 SEO**; LCP 1.9s, TBT 0ms, CLS 0. Raw report: `.factory/evidence/lighthouse.json`.
-- Real network smoke: added `https://example.com/` with selector `h1`, then successfully captured a baseline through the API. The disposable source was removed afterward.
-- Read-path load smoke: 500 concurrent `/health` requests in 3.703s (~135 requests/second) with no failures.
-- `Dockerfile` was inspected and the exact host release build passed. The disposable worker did not provide a Docker daemon, so an image build could not be executed locally.
+## Known limitation
 
-## Known boundaries
+Docker is not installed in this disposable worker, so the local image build and
+container run are covered by the new GitHub Actions regression and the factory
+ACR deployment path. Lighthouse was attempted with the installed Playwright
+Chromium, but its launcher crashed the browser tab in this container; the
+independent verifier's prior mobile Lighthouse result was 99/100/100/100. The
+browser, mobile, accessibility, privacy, and offline behavior were preserved
+and rechecked through the local release binary.
 
-- v1 intentionally fetches server-rendered public HTML only. It does not run page JavaScript, authenticate, render browsers, or bypass bot controls. Client-rendered dashboards need a future explicitly managed browser runner.
-- The built-in scheduler is single-instance and SQLite-backed. Horizontal hosted deployments should add a lease/queue before running multiple scheduler replicas.
-- Licensing gates convenience and frequency controls in this single-tenant UI. Operators of the MIT self-hosted core retain control of their deployment; the factory must register the billing product before production checkout succeeds.
-- Email/webhook delivery and per-user accounts are outside the researched smallest useful product; this v1 is a shared self-hosted inbox.
+## Product boundaries
 
-## Next steps
-
-1. Run a 30-day pilot and use the built-in useful/noise ratings to validate the 80% useful-alert goal.
-2. Register `change-diff-inbox` with the Sociobot billing engine and switch the factory hostname to the production API at release (the client selects production automatically on the canonical hostname).
-3. If pilot demand supports it, add an isolated managed browser runner with queue leases—without weakening robots, rate-limit, or authentication boundaries.
+The watcher intentionally fetches public server-rendered HTML only: it does not
+execute page JavaScript, log in, solve challenges, or bypass robots and access
+controls. The SQLite scheduler remains single-instance; multi-replica hosting
+needs a future lease/queue.

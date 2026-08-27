@@ -41,20 +41,21 @@ Configuration is environment-only:
 ## Test and build
 
 ```sh
+npm run check
 npm test
 npm run build
 ```
 
-`npm test` runs frontend unit tests plus Rust unit/integration tests. The frontend output is exactly `frontend/dist/`, and the release server is `target/release/change-diff-inbox`.
+`npm run check` runs the Vite TypeScript check, Rust formatting check, and Clippy with warnings denied. `npm test` runs frontend unit tests plus Rust unit/integration tests. The frontend output is exactly `frontend/dist/`, and the release server is `target/release/change-diff-inbox`.
 
 ## Container
 
 ```sh
-docker build -t change-diff-inbox .
+docker build --build-arg BUILD_SHA="$(git rev-parse HEAD)" -t change-diff-inbox .
 docker run --rm -p 8080:8080 -v change-diff-data:/app/data change-diff-inbox
 ```
 
-The multi-stage image runs as an unprivileged user and exposes `/health`. Persist `/app/data` in production. Put TLS and access control at your reverse proxy when the deployment should be private.
+The multi-stage image runs as an unprivileged user and exposes `/health`. `BUILD_SHA` is required to be a full 40-character Git SHA; `/health` returns it so a deployed revision can be identified exactly. Persist `/app/data` in production. Put TLS and access control at your reverse proxy when the deployment should be private.
 
 ## Operational boundaries
 

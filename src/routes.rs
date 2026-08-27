@@ -27,8 +27,12 @@ pub fn api() -> Router<SqlitePool> {
         .route("/stats", get(stats))
 }
 
+pub fn build_sha() -> &'static str {
+    option_env!("BUILD_SHA").unwrap_or("dev")
+}
+
 pub async fn health() -> Json<Value> {
-    Json(json!({"status":"ok", "build": option_env!("BUILD_SHA").unwrap_or("dev")}))
+    Json(json!({"status":"ok", "build": build_sha()}))
 }
 
 #[derive(Debug)]

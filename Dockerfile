@@ -12,7 +12,10 @@ WORKDIR /build
 COPY Cargo.toml Cargo.lock ./
 COPY migrations migrations
 COPY src src
-ENV BUILD_SHA=container
+ARG BUILD_SHA
+# The deployer must attest the immutable source revision used for this image.
+RUN test -n "$BUILD_SHA" && printf '%s' "$BUILD_SHA" | grep -Eq '^[0-9a-f]{40}$'
+ENV BUILD_SHA=$BUILD_SHA
 RUN cargo build --release --locked
 
 FROM alpine:3.22

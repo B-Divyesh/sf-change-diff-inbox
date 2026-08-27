@@ -225,7 +225,10 @@ async fn ensure_robots_allowed(client: &Client, page: &Url) -> Result<()> {
 
 fn robots_allows(text: &str, target: &str) -> bool {
     let product = "changediffinbox";
-    let mut groups: Vec<(Vec<String>, Vec<(bool, String)>)> = Vec::new();
+    type RobotsRule = (bool, String);
+    type RobotsGroup = (Vec<String>, Vec<RobotsRule>);
+
+    let mut groups: Vec<RobotsGroup> = Vec::new();
     let mut agents = Vec::new();
     let mut rules = Vec::new();
 
@@ -247,10 +250,8 @@ fn robots_allows(text: &str, target: &str) -> bool {
                 groups.push((std::mem::take(&mut agents), std::mem::take(&mut rules)));
             }
             agents.push(value.to_ascii_lowercase());
-        } else if (key == "allow" || key == "disallow") && !agents.is_empty() {
-            if !value.is_empty() {
-                rules.push((key == "allow", value.to_owned()));
-            }
+        } else if (key == "allow" || key == "disallow") && !agents.is_empty() && !value.is_empty() {
+            rules.push((key == "allow", value.to_owned()));
         }
     }
 

@@ -31,6 +31,9 @@ async fn health_and_source_lifecycle() {
         .await
         .unwrap();
     assert_eq!(health.status(), StatusCode::OK);
+    let health_body = json_body(health).await;
+    assert_eq!(health_body["status"], "ok");
+    assert_eq!(health_body["build"], change_diff_inbox::routes::build_sha());
 
     let payload = json!({"name":"Rust releases","url":"https://www.rust-lang.org/","selector":"main","extract_mode":"selector","threshold":0.05,"interval_minutes":60});
     let created = router

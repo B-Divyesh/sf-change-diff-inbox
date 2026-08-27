@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "npm --workspace frontend run dev",
     "build": "npm --workspace frontend run build && cargo build --release",
+    "check": "npm --workspace frontend run typecheck && cargo fmt --check && cargo clippy --all-targets --all-features -- -D warnings",
     "test": "npm --workspace frontend test && cargo test",
+    "verify:build-identity": "node scripts/verify-build-identity.mjs",
     "start": "cargo run --release"
   },
   "devDependencies": {

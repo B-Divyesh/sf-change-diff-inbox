@@ -7,7 +7,7 @@
     "allowJs": true,
     "checkJs": true,
     "isolatedModules": true,
-    "types": ["vitest/globals"]
+    "types": ["vite/client", "vitest/globals"]
   },
   "include": ["src/**/*.ts", "src/**/*.svelte"]
 }
