@@ -1,0 +1,17 @@
+{
+  "name": "change-diff-inbox",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "npm --workspace frontend run dev",
+    "build": "npm --workspace frontend run build && cargo build --release",
+    "test": "npm --workspace frontend test && cargo test",
+    "start": "cargo run --release"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.4"
+  }
+}
