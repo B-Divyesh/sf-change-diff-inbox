@@ -56,15 +56,25 @@ EXPECTED_BUILD_SHA="$(git rev-parse HEAD)" HEALTH_URL=http://127.0.0.1:8080/heal
 - Playwright Axe desktop (1366×900) and mobile (390×844) audits: zero
   violations at WCAG A/AA/2.1 AA, including zero serious/critical issues.
 
+## Deployment
+
+- ACR build run `ch74` built and pushed
+  `sociobotregistry.azurecr.io/sf-change-diff-inbox:16f8ae213325` using
+  `BUILD_SHA=16f8ae213325e2d8b5137ee42bd25211d3a5ac54`.
+- The fixed container deployment path promoted healthy revision
+  `sf-change-diff-inbox--0000003` to 100% traffic.
+- Production <https://change-diff-inbox.sociobot.in/health> returned
+  `{"build":"16f8ae213325e2d8b5137ee42bd25211d3a5ac54","status":"ok"}`.
+
 ## Known limitation
 
 Docker is not installed in this disposable worker, so the local image build and
-container run are covered by the new GitHub Actions regression and the factory
-ACR deployment path. Lighthouse was attempted with the installed Playwright
-Chromium, but its launcher crashed the browser tab in this container; the
-independent verifier's prior mobile Lighthouse result was 99/100/100/100. The
-browser, mobile, accessibility, privacy, and offline behavior were preserved
-and rechecked through the local release binary.
+container run are covered by the new GitHub Actions regression and the
+successful factory ACR deployment above. Lighthouse was attempted with the
+installed Playwright Chromium, but its launcher crashed the browser tab in this
+container; the independent verifier's prior mobile Lighthouse result was
+99/100/100/100. The browser, mobile, accessibility, privacy, and offline
+behavior were preserved and rechecked through the local release binary.
 
 ## Product boundaries
 
