@@ -1,0 +1,14 @@
+{
+  "url": "http://127.0.0.1:8090",
+  "loadMs": 648,
+  "errors": [],
+  "a11y": {
+    "title": "Change Diff Inbox — semantic page monitoring",
+    "lang": "en",
+    "h1": 1,
+    "main": true,
+    "imgsMissingAlt": 0,
+    "buttonsUnlabeled": 0,
+    "textLength": 612
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "slug": "change-diff-inbox",
+  "title": "Change Diff Inbox",
+  "territory": "devtools-data",
+  "user": "Developers monitoring documentation, vendor status pages, or dashboards who need meaningful page changes rather than raw screenshots or email noise.",
+  "smallest_useful_product": "A self-hostable watcher with CSS selectors, structured-data extraction, noise thresholds, and a compact semantic diff inbox.",
+  "success_measure": "In a 30-day pilot, at least 80% of delivered alerts are marked useful and fewer than two alerts per watched source/week are dismissed as noise.",
+  "artifact_class": "web-with-backend",
+  "monetization": "freemium — self-hosted core is free; managed scheduled browser execution can fund the service.",
+  "constraints": "Respect robots.txt, rate limits, and authentication boundaries; never offer anti-bot evasion; isolate fetched content.",
+  "state": "BUILT"
+}
