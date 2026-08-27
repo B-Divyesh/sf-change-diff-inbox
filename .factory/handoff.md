@@ -1,4 +1,17 @@
-# Change Diff Inbox v1 — handoff
+# Change Diff Inbox v1 — verification handoff
+
+## Verification status: **FAIL**
+
+Candidate `c51139c0ef6eb4b4a4d8e4a3142c9c882b9ca568` was independently verified
+on 2026-08-27 against <https://change-diff-inbox.sociobot.in>. Do **not** ship
+this candidate as-is: its frontend TypeScript check fails and Rust Clippy fails
+with warnings denied. The live asset hashes match the clean candidate build,
+but `/health` reports `build: "container"`, not the immutable candidate SHA.
+
+See [.factory/verification.md](verification.md) for commands, exact output,
+functional/browser/security evidence, and defects by severity. Required next
+steps are to fix the TypeScript/Vite ambient type error, resolve the two Clippy
+findings, inject the real build SHA, and rerun verification.
 
 ## Shipped
 
@@ -23,7 +36,14 @@ npm start
 
 The production frontend lands in `frontend/dist/`; the release server lands at `target/release/change-diff-inbox`. Container usage is documented in `README.md`.
 
-Verification completed on 2026-08-27:
+## Superseded builder-reported verification
+
+The following was recorded before the independent verifier run. It is retained
+as historical implementation context only; it is **not an acceptance result**.
+The authoritative result is the FAIL status and exact evidence in
+`.factory/verification.md` above.
+
+Builder-reported verification on 2026-08-27:
 
 - `npm test`: passed — 3 Vitest assertions, 4 Rust watcher unit tests, and 3 API integration tests.
 - `npm run build`: passed from the root — Vite production build plus Rust release build.
