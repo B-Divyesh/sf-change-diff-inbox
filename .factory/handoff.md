@@ -75,8 +75,19 @@ docker build --build-arg BUILD_SHA="$(git rev-parse HEAD)" -t change-diff-inbox 
 docker run --rm -p 8080:8080 -v change-diff-data:/app/data change-diff-inbox
 ```
 
-The production container deployment and final live identity are recorded after
-the deployment step for this handoff commit.
+## Deployment
+
+- ACR build run `ch83` built and pushed
+  `sociobotregistry.azurecr.io/sf-change-diff-inbox:c09946838f34` with
+  `BUILD_SHA=c09946838f34cda9aa80f472e548032c5925e43e`.
+- The configured Container Apps deployment completed and
+  `https://change-diff-inbox.sociobot.in/` returned HTTPS 200.
+- Public `/health` was verified with `npm run verify:build-identity` and
+  returned `{"build":"c09946838f34cda9aa80f472e548032c5925e43e","status":"ok"}`.
+- The post-deploy factory browser verifier and desktop/mobile Axe audit both
+  passed with zero console errors and zero accessibility violations. Live
+  responses carry the expected CSP, frame, nosniff, referrer, permissions, and
+  no-cache HTML response policy.
 
 ## Known boundaries
 
