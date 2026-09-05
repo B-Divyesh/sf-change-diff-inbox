@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { compact, csvEscape, diffWords } from './lib';
 
   type Source = { id:string; name:string; url:string; selector:string; extract_mode:string; threshold:number; interval_minutes:number; enabled:number; last_checked:string|null; last_status:string; last_error:string|null; next_check:string|null; created_at:string };
@@ -85,6 +85,7 @@
     const path = next === 'home' ? '/' : `/${next}`;
     if (push) history.pushState({}, '', path);
     setMetadata();
+    await tick();
     if (next === 'home' || next === 'demo') await initialize(true);
     window.scrollTo({top:0, behavior:'auto'});
     requestAnimationFrame(() => {

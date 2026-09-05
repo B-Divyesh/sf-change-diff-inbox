@@ -37,7 +37,9 @@ test.beforeEach(async ({page}) => {
 });
 
 test('@claim:demo-sandbox opens populated sample data, resets it, and keeps the label visible', async ({page}) => {
-  await page.goto('/demo');
+  await page.goto('/');
+  await page.getByRole('link', {name:'Try it with sample data'}).click();
+  await expect(page).toHaveURL(/\/demo$/);
   await expect(page.getByRole('heading', {name:'Review sample page changes'})).toBeVisible();
   await expect(page.getByText('Demo — sample data, nothing is saved to your workspace')).toBeVisible();
   await expect(page.locator('.change-card')).toHaveCount(3);
