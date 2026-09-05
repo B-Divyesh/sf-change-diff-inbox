@@ -85,7 +85,11 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn run_migrations(pool: &SqlitePool) -> anyhow::Result<()> {
-    let migrator = sqlx::migrate!();
+    let mut migrator = sqlx::migrate!();
+    // Azure Files does not support SQLx's SQLite migration-wide exclusive
+    // lock. The fleet keeps this app at one replica, while each migration is
+    // still applied in its own SQLite transaction.
+    migrator.set_locking(false);
     for attempt in 1..=12 {
         match migrator.run(pool).await {
             Ok(()) => return Ok(()),
