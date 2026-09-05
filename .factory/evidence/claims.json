@@ -1,0 +1,769 @@
+{
+  "config": {
+    "configFile": "/work/repo/playwright.config.ts",
+    "rootDir": "/work/repo/tests/browser",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/work/repo/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/work/repo/tests/browser",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": ".factory/evidence/claims.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 1,
+    "webServer": {
+      "command": "sh scripts/run-claim-server.sh",
+      "url": "http://127.0.0.1:4173/health",
+      "timeout": 120000,
+      "reuseExistingServer": false
+    }
+  },
+  "suites": [
+    {
+      "title": "claims.spec.ts",
+      "file": "claims.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "@claim:demo-sandbox opens populated sample data, resets it, and keeps the label visible",
+          "ok": true,
+          "tags": [
+            "claim:demo-sandbox"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1174,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:22.608Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-7c1d41b33507aeac18cf",
+          "file": "claims.spec.ts",
+          "line": 39,
+          "column": 5
+        },
+        {
+          "title": "@claim:tenant-isolation separates two browser workspaces at every record boundary",
+          "ok": true,
+          "tags": [
+            "claim:tenant-isolation"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 187,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:23.878Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-acd1c392f43449fe7535",
+          "file": "claims.spec.ts",
+          "line": 52,
+          "column": 5
+        },
+        {
+          "title": "@claim:structured-extraction extracts selected tables, code blocks, and JSON-LD into text",
+          "ok": true,
+          "tags": [
+            "claim:structured-extraction"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 138,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:24.080Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-08575d8e288887510df4",
+          "file": "claims.spec.ts",
+          "line": 64,
+          "column": 5
+        },
+        {
+          "title": "@claim:semantic-threshold creates word changes above the threshold and ignores smaller changes",
+          "ok": true,
+          "tags": [
+            "claim:semantic-threshold"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 133,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:24.234Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-e05a522b731d96733de7",
+          "file": "claims.spec.ts",
+          "line": 79,
+          "column": 5
+        },
+        {
+          "title": "@claim:schedules records daily and weekly schedules and provides manual checks",
+          "ok": true,
+          "tags": [
+            "claim:schedules"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 891,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:24.383Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-e21b211d37cd29c004d7",
+          "file": "claims.spec.ts",
+          "line": 90,
+          "column": 5
+        },
+        {
+          "title": "@claim:safety-boundaries rejects authenticated and private targets and enforces robots rules",
+          "ok": true,
+          "tags": [
+            "claim:safety-boundaries"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 165,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:25.285Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-0e5752e936e8fcda1d30",
+          "file": "claims.spec.ts",
+          "line": 101,
+          "column": 5
+        },
+        {
+          "title": "@claim:size-limits rejects source bodies above 2 MB and extracted text above 250 KB",
+          "ok": true,
+          "tags": [
+            "claim:size-limits"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 203,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:25.462Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-3c4de9535c6fdc77d9f7",
+          "file": "claims.spec.ts",
+          "line": 117,
+          "column": 5
+        },
+        {
+          "title": "@claim:review-states saves unread, reviewed, archived, useful, and noise decisions",
+          "ok": true,
+          "tags": [
+            "claim:review-states"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 136,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:25.676Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-f1bea0b6756a90bf415b",
+          "file": "claims.spec.ts",
+          "line": 126,
+          "column": 5
+        },
+        {
+          "title": "@claim:csv-export downloads every displayed sample change as CSV",
+          "ok": true,
+          "tags": [
+            "claim:csv-export"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 393,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:25.824Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-b708185d1f127b46cf7e",
+          "file": "claims.spec.ts",
+          "line": 137,
+          "column": 5
+        },
+        {
+          "title": "@claim:responsive-keyboard keeps mobile content contained, keyboard focus visible, and serious accessibility errors absent",
+          "ok": true,
+          "tags": [
+            "claim:responsive-keyboard"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1008,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:26.230Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-ecc9fade9222c062be5a",
+          "file": "claims.spec.ts",
+          "line": 150,
+          "column": 5
+        },
+        {
+          "title": "@claim:offline-shell reloads the product shell after the first visit without reusing the shared browser",
+          "ok": true,
+          "tags": [
+            "claim:offline-shell"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10905,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:27.250Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-99a8b6369e118a7130b9",
+          "file": "claims.spec.ts",
+          "line": 163,
+          "column": 5
+        },
+        {
+          "title": "@claim:privacy-network keeps the demo flow same-origin with no analytics, remote fonts, or tracking calls",
+          "ok": true,
+          "tags": [
+            "claim:privacy-network"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 846,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:38.169Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-f1c6447d179a462f490f",
+          "file": "claims.spec.ts",
+          "line": 178,
+          "column": 5
+        },
+        {
+          "title": "@claim:free-limits enforces five sources and daily or weekly checks at the server",
+          "ok": true,
+          "tags": [
+            "claim:free-limits"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 189,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:39.028Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-7389f0f800e324499c73",
+          "file": "claims.spec.ts",
+          "line": 191,
+          "column": 5
+        },
+        {
+          "title": "@claim:paid-entitlement accepts short schedules and more than five sources only with a signed Pro session",
+          "ok": true,
+          "tags": [
+            "claim:paid-entitlement"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 205,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:39.240Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-87e9136542ce9be06e17",
+          "file": "claims.spec.ts",
+          "line": 199,
+          "column": 5
+        },
+        {
+          "title": "@claim:rate-limit returns 429 and Retry-After beyond the live request allowance",
+          "ok": true,
+          "tags": [
+            "claim:rate-limit"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 260,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:39.456Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-c7baa2ec4a7e9f6b5528",
+          "file": "claims.spec.ts",
+          "line": 215,
+          "column": 5
+        },
+        {
+          "title": "@claim:delete-cascade removes a source and all of its saved changes",
+          "ok": true,
+          "tags": [
+            "claim:delete-cascade"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 170,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:39.731Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-a3a877739167c83a57f7",
+          "file": "claims.spec.ts",
+          "line": 226,
+          "column": 5
+        },
+        {
+          "title": "@claim:license-cache uses a daily cached verdict without blocking the free inbox",
+          "ok": true,
+          "tags": [
+            "claim:license-cache"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 549,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:39.923Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-d07b7632a465db9e6ef4",
+          "file": "claims.spec.ts",
+          "line": 237,
+          "column": 5
+        },
+        {
+          "title": "@claim:route-contract gives demo, legal, back-navigation, and 404 pages correct titles and headings",
+          "ok": true,
+          "tags": [
+            "claim:route-contract"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 590,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:40.483Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-ee9aa041846e248d6137",
+          "file": "claims.spec.ts",
+          "line": 249,
+          "column": 5
+        },
+        {
+          "title": "@claim:restart-persistence retains one workspace and its source after a clean server restart",
+          "ok": true,
+          "tags": [
+            "claim:restart-persistence"
+          ],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 447,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-05T22:04:41.093Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4d980a722f8828033cf5-3f3e5cf273dfec606b68",
+          "file": "claims.spec.ts",
+          "line": 262,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-05T22:04:21.027Z",
+    "duration": 20595.323999999997,
+    "expected": 19,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

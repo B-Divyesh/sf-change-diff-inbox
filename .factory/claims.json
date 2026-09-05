@@ -1,0 +1,135 @@
+[
+  {
+    "id": "demo-sandbox",
+    "claim": "One click opens three realistic sample changes in a separate 24-hour workspace that can be reset.",
+    "where": "landing action, demo banner, README",
+    "test": "npm run test:claims -- --grep @claim:demo-sandbox",
+    "sandbox": "fresh browser context at /demo; modify a review state, reset, and verify the original three records"
+  },
+  {
+    "id": "tenant-isolation",
+    "claim": "Each browser workspace can read and change only its own sources and changes.",
+    "where": "landing facts, privacy page, README",
+    "test": "npm run test:claims -- --grep @claim:tenant-isolation",
+    "sandbox": "two fresh API cookie jars; create in one and attempt list and delete from the other"
+  },
+  {
+    "id": "structured-extraction",
+    "claim": "The watcher extracts CSS-selected sections, tables, code blocks, and JSON-LD as normalized text.",
+    "where": "landing how-it-works, source form, README",
+    "test": "npm run test:claims -- --grep @claim:structured-extraction",
+    "sandbox": "demo workspace; submit bundled table, code, and JSON-LD HTML to the sample extractor and compare text"
+  },
+  {
+    "id": "semantic-threshold",
+    "claim": "A check creates a word change at or above its threshold and ignores smaller changes.",
+    "where": "landing how-it-works, README",
+    "test": "npm run test:claims -- --grep @claim:semantic-threshold",
+    "sandbox": "demo sample extractor; compare the same before/after text at zero and 100 percent thresholds"
+  },
+  {
+    "id": "schedules",
+    "claim": "Sources store daily or weekly schedules and provide a manual check action.",
+    "where": "source form, landing, README",
+    "test": "npm run test:claims -- --grep @claim:schedules",
+    "sandbox": "fresh real workspace; create daily and weekly sources and inspect their API records and source controls"
+  },
+  {
+    "id": "safety-boundaries",
+    "claim": "The service rejects authenticated and private targets and obeys matching robots.txt rules.",
+    "where": "landing limits, terms, README",
+    "test": "npm run test:claims -- --grep @claim:safety-boundaries",
+    "sandbox": "fresh workspaces; attempt authenticated and loopback targets and a disallowed demo robots rule"
+  },
+  {
+    "id": "size-limits",
+    "claim": "The watcher limits responses to 2 MB and extracted text to 250 KB.",
+    "where": "landing limits, README",
+    "test": "npm run test:claims -- --grep @claim:size-limits",
+    "sandbox": "demo extractor; submit content one byte over each documented limit and require 413"
+  },
+  {
+    "id": "review-states",
+    "claim": "The inbox stores unread, reviewed, archived, useful, and noise decisions.",
+    "where": "inbox, README",
+    "test": "npm run test:claims -- --grep @claim:review-states",
+    "sandbox": "demo workspace; inspect seeded states, change an unread item, and read the saved result"
+  },
+  {
+    "id": "csv-export",
+    "claim": "CSV export includes every change currently displayed in the inbox.",
+    "where": "inbox, landing how-it-works, README",
+    "test": "npm run test:claims -- --grep @claim:csv-export",
+    "sandbox": "fresh /demo page; download CSV and assert its header and three sample rows"
+  },
+  {
+    "id": "responsive-keyboard",
+    "claim": "The interface works at phone width with keyboard focus and no serious accessibility violations.",
+    "where": "README",
+    "test": "npm run test:claims -- --grep @claim:responsive-keyboard",
+    "sandbox": "390 by 844 demo viewport; assert no overflow, visible skip-link focus, and Axe serious/critical zero"
+  },
+  {
+    "id": "offline-shell",
+    "claim": "The app shell reloads offline after the first visit; inbox data still requires the server.",
+    "where": "offline notice, README",
+    "test": "npm run test:claims -- --grep @claim:offline-shell",
+    "sandbox": "dedicated fresh browser context; install service worker, go offline, reload /demo, then close only that context"
+  },
+  {
+    "id": "privacy-network",
+    "claim": "The demo uses no analytics, tracking calls, remote fonts, or runtime CDNs.",
+    "where": "privacy page, README",
+    "test": "npm run test:claims -- --grep @claim:privacy-network",
+    "sandbox": "fresh /demo context; record requests through open and reset flows and require only the product origin"
+  },
+  {
+    "id": "free-limits",
+    "claim": "The server limits a free workspace to five sources and daily or weekly checks.",
+    "where": "landing facts, plans, terms, README",
+    "test": "npm run test:claims -- --grep @claim:free-limits",
+    "sandbox": "fresh real workspace; reject a 15-minute source and a sixth source at the API boundary"
+  },
+  {
+    "id": "paid-entitlement",
+    "claim": "Only a verified Pro session can use short schedules and more than five sources.",
+    "where": "plans, terms, README",
+    "test": "npm run test:claims -- --grep @claim:paid-entitlement",
+    "sandbox": "fresh workspace with a server-signed 1-hour entitlement; create a 15-minute source and six total sources"
+  },
+  {
+    "id": "rate-limit",
+    "claim": "API request allowances return 429 with Retry-After when exceeded.",
+    "where": "README operations",
+    "test": "npm run test:claims -- --grep @claim:rate-limit",
+    "sandbox": "fresh API session and forwarded client address; send 50 concurrent reads"
+  },
+  {
+    "id": "delete-cascade",
+    "claim": "Deleting a source also deletes all of its snapshots and changes.",
+    "where": "removal confirmation, privacy page, README",
+    "test": "npm run test:claims -- --grep @claim:delete-cascade",
+    "sandbox": "fresh demo workspace; delete one source and verify its related change is absent"
+  },
+  {
+    "id": "license-cache",
+    "claim": "A recent browser license verdict is reused for 24 hours without blocking the free inbox.",
+    "where": "plans, privacy page, README",
+    "test": "npm run test:claims -- --grep @claim:license-cache",
+    "sandbox": "fresh page with a current stored verdict; verify the free inbox loads and no license request is sent"
+  },
+  {
+    "id": "route-contract",
+    "claim": "Demo, privacy, terms, browser history, and missing-page routes have their own title and heading.",
+    "where": "site navigation",
+    "test": "npm run test:claims -- --grep @claim:route-contract",
+    "sandbox": "fresh browser; navigate legal pages, use Back, and request an unknown URL"
+  },
+  {
+    "id": "restart-persistence",
+    "claim": "SQLite source data and the signed workspace identity survive a process restart.",
+    "where": "landing facts, README",
+    "test": "npm run test:claims -- --grep @claim:restart-persistence",
+    "sandbox": "temporary data directory and secondary local server; create a source, stop, restart, and list it with the same cookie"
+  }
+]

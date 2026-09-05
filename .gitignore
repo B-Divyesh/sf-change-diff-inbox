@@ -7,3 +7,5 @@ data/
 *.log
 graphify-out/
 .DS_Store
+test-results/
+playwright-report/

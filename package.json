@@ -9,14 +9,16 @@
     "dev": "npm --workspace frontend run dev",
     "build": "npm --workspace frontend run build && cargo build --release",
     "check": "npm --workspace frontend run typecheck && cargo fmt --check && cargo clippy --all-targets --all-features -- -D warnings",
-    "test": "npm --workspace frontend test && cargo test",
+    "test": "npm run test:unit && npm run test:claims",
+    "test:unit": "npm --workspace frontend test && cargo test",
+    "test:claims": "npm --workspace frontend run build && playwright test --config playwright.config.ts",
     "verify:build-identity": "node scripts/verify-build-identity.mjs",
     "start": "cargo run --release"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "lighthouse": "^13.4.1",
-    "playwright": "^1.62.1",
+    "playwright": "1.58.2",
     "sharp": "^0.35.4"
   }
 }
