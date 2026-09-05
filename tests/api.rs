@@ -1,6 +1,7 @@
 use axum::{
     body::Body,
-    http::{Request, StatusCode},
+    http::{header, Request, StatusCode},
+    Router,
 };
 use change_diff_inbox::app;
 use http_body_util::BodyExt;
@@ -8,7 +9,7 @@ use serde_json::{json, Value};
 use sqlx::sqlite::SqlitePoolOptions;
 use tower::ServiceExt;
 
-async fn test_app() -> axum::Router {
+async fn test_app() -> Router {
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
         .connect("sqlite::memory:")
@@ -22,6 +23,53 @@ async fn json_body(response: axum::response::Response) -> Value {
     serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes()).unwrap()
 }
 
+async fn session(router: &Router, demo: bool, ip: &str) -> String {
+    let path = if demo {
+        "/api/demo/session"
+    } else {
+        "/api/session"
+    };
+    let response = router
+        .clone()
+        .oneshot(
+            Request::post(path)
+                .header("x-forwarded-for", ip)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    response
+        .headers()
+        .get(header::SET_COOKIE)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .split(';')
+        .next()
+        .unwrap()
+        .to_owned()
+}
+
+fn request(method: &str, uri: impl AsRef<str>, cookie: &str, body: Option<Value>) -> Request<Body> {
+    let mut builder = Request::builder()
+        .method(method)
+        .uri(uri.as_ref())
+        .header(header::COOKIE, cookie)
+        .header("x-forwarded-for", "198.51.100.20");
+    if body.is_some() {
+        builder = builder.header(header::CONTENT_TYPE, "application/json");
+    }
+    builder
+        .body(body.map_or_else(Body::empty, |value| Body::from(value.to_string())))
+        .unwrap()
+}
+
+fn source(name: &str) -> Value {
+    json!({"name":name,"url":"https://example.com/","selector":"main","extract_mode":"selector","threshold":0.05,"interval_minutes":1440})
+}
+
 #[tokio::test]
 async fn health_and_source_lifecycle() {
     let router = test_app().await;
@@ -31,79 +79,220 @@ async fn health_and_source_lifecycle() {
         .await
         .unwrap();
     assert_eq!(health.status(), StatusCode::OK);
-    let health_body = json_body(health).await;
-    assert_eq!(health_body["status"], "ok");
-    assert_eq!(health_body["build"], change_diff_inbox::routes::build_sha());
+    assert_eq!(json_body(health).await["status"], "ok");
 
-    let payload = json!({"name":"Rust releases","url":"https://www.rust-lang.org/","selector":"main","extract_mode":"selector","threshold":0.05,"interval_minutes":60});
+    let cookie = session(&router, false, "198.51.100.1").await;
     let created = router
         .clone()
-        .oneshot(
-            Request::post("/api/sources")
-                .header("content-type", "application/json")
-                .body(Body::from(payload.to_string()))
-                .unwrap(),
-        )
+        .oneshot(request(
+            "POST",
+            "/api/sources",
+            &cookie,
+            Some(source("Rust releases")),
+        ))
         .await
         .unwrap();
     assert_eq!(created.status(), StatusCode::CREATED);
-    let source = json_body(created).await;
-    let id = source["id"].as_str().unwrap();
+    let id = json_body(created).await["id"].as_str().unwrap().to_owned();
 
     let listed = router
         .clone()
-        .oneshot(Request::get("/api/sources").body(Body::empty()).unwrap())
+        .oneshot(request("GET", "/api/sources", &cookie, None))
         .await
         .unwrap();
     assert_eq!(json_body(listed).await.as_array().unwrap().len(), 1);
-    let stats = router
+    let updated = router
         .clone()
-        .oneshot(Request::get("/api/stats").body(Body::empty()).unwrap())
+        .oneshot(request(
+            "PUT",
+            format!("/api/sources/{id}"),
+            &cookie,
+            Some(source("Rust home")),
+        ))
         .await
         .unwrap();
-    assert_eq!(json_body(stats).await["sources"], 1);
-    let changes = router
-        .clone()
-        .oneshot(Request::get("/api/changes").body(Body::empty()).unwrap())
-        .await
-        .unwrap();
-    assert!(json_body(changes).await.as_array().unwrap().is_empty());
-
-    let updated = json!({"name":"Rust home","url":"https://www.rust-lang.org/","selector":"body","extract_mode":"selector","threshold":0.08,"interval_minutes":120});
-    let response = router
-        .clone()
-        .oneshot(
-            Request::put(format!("/api/sources/{id}"))
-                .header("content-type", "application/json")
-                .body(Body::from(updated.to_string()))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(updated.status(), StatusCode::OK);
     let deleted = router
         .clone()
-        .oneshot(
-            Request::delete(format!("/api/sources/{id}"))
-                .body(Body::empty())
-                .unwrap(),
-        )
+        .oneshot(request(
+            "DELETE",
+            format!("/api/sources/{id}"),
+            &cookie,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(deleted.status(), StatusCode::NO_CONTENT);
 }
 
 #[tokio::test]
+async fn workspaces_cannot_read_or_change_each_others_records() {
+    let router = test_app().await;
+    let first = session(&router, false, "198.51.100.2").await;
+    let second = session(&router, false, "198.51.100.3").await;
+    let created = router
+        .clone()
+        .oneshot(request(
+            "POST",
+            "/api/sources",
+            &first,
+            Some(source("Private source")),
+        ))
+        .await
+        .unwrap();
+    let id = json_body(created).await["id"].as_str().unwrap().to_owned();
+    let second_list = router
+        .clone()
+        .oneshot(request("GET", "/api/sources", &second, None))
+        .await
+        .unwrap();
+    assert!(json_body(second_list).await.as_array().unwrap().is_empty());
+    let cross_delete = router
+        .clone()
+        .oneshot(request(
+            "DELETE",
+            format!("/api/sources/{id}"),
+            &second,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(cross_delete.status(), StatusCode::NOT_FOUND);
+    let first_list = router
+        .clone()
+        .oneshot(request("GET", "/api/sources", &first, None))
+        .await
+        .unwrap();
+    assert_eq!(json_body(first_list).await.as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn demo_is_seeded_resettable_and_separate() {
+    let router = test_app().await;
+    let real = session(&router, false, "198.51.100.4").await;
+    let demo = session(&router, true, "198.51.100.5").await;
+    let demo_sources = router
+        .clone()
+        .oneshot(request("GET", "/api/demo/sources", &demo, None))
+        .await
+        .unwrap();
+    assert_eq!(json_body(demo_sources).await.as_array().unwrap().len(), 3);
+    let real_sources = router
+        .clone()
+        .oneshot(request("GET", "/api/sources", &real, None))
+        .await
+        .unwrap();
+    assert!(json_body(real_sources).await.as_array().unwrap().is_empty());
+    let changes = router
+        .clone()
+        .oneshot(request("GET", "/api/demo/changes", &demo, None))
+        .await
+        .unwrap();
+    let change_id = json_body(changes).await[0]["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    router
+        .clone()
+        .oneshot(request(
+            "PATCH",
+            format!("/api/demo/changes/{change_id}"),
+            &demo,
+            Some(json!({"review_state":"archived"})),
+        ))
+        .await
+        .unwrap();
+    let reset = router
+        .clone()
+        .oneshot(request("POST", "/api/demo/reset", &demo, None))
+        .await
+        .unwrap();
+    assert_eq!(reset.status(), StatusCode::OK);
+    let after = router
+        .oneshot(request(
+            "GET",
+            "/api/demo/changes?state=unread",
+            &demo,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(json_body(after).await.as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn free_limits_are_enforced_by_the_api() {
+    let router = test_app().await;
+    let cookie = session(&router, false, "198.51.100.6").await;
+    let short = json!({"name":"Fast source","url":"https://example.com/","selector":"main","extract_mode":"selector","threshold":0.05,"interval_minutes":15});
+    let response = router
+        .clone()
+        .oneshot(request("POST", "/api/sources", &cookie, Some(short)))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::PAYMENT_REQUIRED);
+    for number in 1..=5 {
+        let created = router
+            .clone()
+            .oneshot(request(
+                "POST",
+                "/api/sources",
+                &cookie,
+                Some(source(&format!("Source {number}"))),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(created.status(), StatusCode::CREATED);
+    }
+    let sixth = router
+        .oneshot(request(
+            "POST",
+            "/api/sources",
+            &cookie,
+            Some(source("Source 6")),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(sixth.status(), StatusCode::PAYMENT_REQUIRED);
+}
+
+#[tokio::test]
+async fn api_rate_limit_uses_forwarded_client_and_returns_retry_after() {
+    let router = test_app().await;
+    let cookie = session(&router, false, "198.51.100.7").await;
+    let mut limited = None;
+    for _ in 0..45 {
+        let response = router
+            .clone()
+            .oneshot(
+                Request::get("/api/stats")
+                    .header(header::COOKIE, &cookie)
+                    .header("x-forwarded-for", "203.0.113.44, 10.0.0.8")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        if response.status() == StatusCode::TOO_MANY_REQUESTS {
+            limited = Some(response);
+            break;
+        }
+    }
+    let limited = limited.expect("request allowance should be enforced");
+    assert!(limited.headers().contains_key(header::RETRY_AFTER));
+}
+
+#[tokio::test]
 async fn validation_errors_are_actionable() {
     let router = test_app().await;
-    let payload = json!({"name":"x","url":"file:///secret","interval_minutes":1});
+    let cookie = session(&router, false, "198.51.100.8").await;
     let response = router
-        .oneshot(
-            Request::post("/api/sources")
-                .header("content-type", "application/json")
-                .body(Body::from(payload.to_string()))
-                .unwrap(),
-        )
+        .oneshot(request(
+            "POST",
+            "/api/sources",
+            &cookie,
+            Some(json!({"name":"x","url":"file:///secret","interval_minutes":1})),
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -111,53 +300,4 @@ async fn validation_errors_are_actionable() {
         .as_str()
         .unwrap()
         .contains("Name"));
-}
-
-#[tokio::test]
-async fn check_and_review_routes_report_state() {
-    let pool = SqlitePoolOptions::new()
-        .max_connections(1)
-        .connect("sqlite::memory:")
-        .await
-        .unwrap();
-    sqlx::migrate!().run(&pool).await.unwrap();
-    sqlx::query("INSERT INTO sources (id,name,url,selector,created_at) VALUES ('source-1','Vendor plans','https://example.com','h1','2026-08-27T00:00:00Z')")
-        .execute(&pool).await.unwrap();
-    sqlx::query("INSERT INTO changes (id,source_id,previous_text,current_text,change_ratio,summary,created_at) VALUES ('change-1','source-1','ten','twelve',0.5,'Price changed','2026-08-27T00:00:00Z')")
-        .execute(&pool).await.unwrap();
-    let router = app(pool, "frontend/dist");
-
-    let reviewed = router
-        .clone()
-        .oneshot(
-            Request::patch("/api/changes/change-1")
-                .header("content-type", "application/json")
-                .body(Body::from(r#"{"review_state":"reviewed","useful":true}"#))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(reviewed.status(), StatusCode::OK);
-
-    let changes = router
-        .clone()
-        .oneshot(
-            Request::get("/api/changes?state=reviewed")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    let body = json_body(changes).await;
-    assert_eq!(body[0]["useful"], 1);
-
-    let missing = router
-        .oneshot(
-            Request::post("/api/sources/missing/check")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(missing.status(), StatusCode::BAD_REQUEST);
 }

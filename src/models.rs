@@ -4,6 +4,8 @@ use sqlx::FromRow;
 #[derive(Debug, Clone, Serialize, FromRow)]
 pub struct Source {
     pub id: String,
+    #[serde(skip_serializing)]
+    pub tenant_id: String,
     pub name: String,
     pub url: String,
     pub selector: String,
@@ -33,6 +35,8 @@ pub struct SourceInput {
 #[derive(Debug, Serialize, FromRow)]
 pub struct Change {
     pub id: String,
+    #[serde(skip_serializing)]
+    pub tenant_id: String,
     pub source_id: String,
     pub source_name: String,
     pub source_url: String,

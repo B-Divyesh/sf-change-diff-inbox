@@ -14,12 +14,14 @@ use crate::models::{CheckResult, Source};
 const USER_AGENT: &str = "ChangeDiffInbox/1.0 (+https://change-diff-inbox.sociobot.in)";
 const MAX_BYTES: usize = 2_000_000;
 
-pub async fn check_source(pool: &SqlitePool, id: &str) -> Result<CheckResult> {
-    let source = sqlx::query_as::<_, Source>("SELECT * FROM sources WHERE id = ?")
-        .bind(id)
-        .fetch_optional(pool)
-        .await?
-        .ok_or_else(|| anyhow!("Source not found"))?;
+pub async fn check_source(pool: &SqlitePool, tenant_id: &str, id: &str) -> Result<CheckResult> {
+    let source =
+        sqlx::query_as::<_, Source>("SELECT * FROM sources WHERE id = ? AND tenant_id = ?")
+            .bind(id)
+            .bind(tenant_id)
+            .fetch_optional(pool)
+            .await?
+            .ok_or_else(|| anyhow!("Source not found"))?;
 
     let now = Utc::now();
     if let Some(last_checked) = source
@@ -48,8 +50,8 @@ pub async fn check_source(pool: &SqlitePool, id: &str) -> Result<CheckResult> {
                     .await;
             }
             let Some(previous) = source.baseline.as_deref() else {
-                sqlx::query("UPDATE sources SET baseline=?, last_checked=?, last_status='ready', last_error=NULL, next_check=? WHERE id=?")
-                    .bind(&content).bind(now.to_rfc3339()).bind(next.to_rfc3339()).bind(&source.id)
+                sqlx::query("UPDATE sources SET baseline=?, last_checked=?, last_status='ready', last_error=NULL, next_check=? WHERE id=? AND tenant_id=?")
+                    .bind(&content).bind(now.to_rfc3339()).bind(next.to_rfc3339()).bind(&source.id).bind(tenant_id)
                     .execute(pool).await?;
                 return Ok(CheckResult {
                     outcome: "baseline".into(),
@@ -60,8 +62,8 @@ pub async fn check_source(pool: &SqlitePool, id: &str) -> Result<CheckResult> {
 
             let ratio = change_ratio(previous, &content);
             if ratio < source.threshold {
-                sqlx::query("UPDATE sources SET baseline=?, last_checked=?, last_status='quiet', last_error=NULL, next_check=? WHERE id=?")
-                    .bind(&content).bind(now.to_rfc3339()).bind(next.to_rfc3339()).bind(&source.id)
+                sqlx::query("UPDATE sources SET baseline=?, last_checked=?, last_status='quiet', last_error=NULL, next_check=? WHERE id=? AND tenant_id=?")
+                    .bind(&content).bind(now.to_rfc3339()).bind(next.to_rfc3339()).bind(&source.id).bind(tenant_id)
                     .execute(pool).await?;
                 return Ok(CheckResult {
                     outcome: "noise".into(),
@@ -77,11 +79,11 @@ pub async fn check_source(pool: &SqlitePool, id: &str) -> Result<CheckResult> {
             let change_id = Uuid::new_v4().to_string();
             let summary = summarize(previous, &content);
             let mut tx = pool.begin().await?;
-            sqlx::query("INSERT INTO changes (id,source_id,previous_text,current_text,change_ratio,summary,created_at) VALUES (?,?,?,?,?,?,?)")
-                .bind(&change_id).bind(&source.id).bind(previous).bind(&content).bind(ratio).bind(summary).bind(now.to_rfc3339())
+            sqlx::query("INSERT INTO changes (id,tenant_id,source_id,previous_text,current_text,change_ratio,summary,created_at) VALUES (?,?,?,?,?,?,?,?)")
+                .bind(&change_id).bind(tenant_id).bind(&source.id).bind(previous).bind(&content).bind(ratio).bind(summary).bind(now.to_rfc3339())
                 .execute(&mut *tx).await?;
-            sqlx::query("UPDATE sources SET baseline=?, last_checked=?, last_status='changed', last_error=NULL, next_check=? WHERE id=?")
-                .bind(&content).bind(now.to_rfc3339()).bind(next.to_rfc3339()).bind(&source.id)
+            sqlx::query("UPDATE sources SET baseline=?, last_checked=?, last_status='changed', last_error=NULL, next_check=? WHERE id=? AND tenant_id=?")
+                .bind(&content).bind(now.to_rfc3339()).bind(next.to_rfc3339()).bind(&source.id).bind(tenant_id)
                 .execute(&mut *tx).await?;
             tx.commit().await?;
             Ok(CheckResult {
@@ -101,8 +103,8 @@ async fn record_error(
     now: &chrono::DateTime<Utc>,
     next: &chrono::DateTime<Utc>,
 ) -> Result<CheckResult> {
-    sqlx::query("UPDATE sources SET last_checked=?, last_status='error', last_error=?, next_check=? WHERE id=?")
-        .bind(now.to_rfc3339()).bind(message).bind(next.to_rfc3339()).bind(&source.id)
+    sqlx::query("UPDATE sources SET last_checked=?, last_status='error', last_error=?, next_check=? WHERE id=? AND tenant_id=?")
+        .bind(now.to_rfc3339()).bind(message).bind(next.to_rfc3339()).bind(&source.id).bind(&source.tenant_id)
         .execute(pool).await?;
     Ok(CheckResult {
         outcome: "error".into(),
@@ -223,7 +225,7 @@ async fn ensure_robots_allowed(client: &Client, page: &Url) -> Result<()> {
     }
 }
 
-fn robots_allows(text: &str, target: &str) -> bool {
+pub fn robots_allows(text: &str, target: &str) -> bool {
     let product = "changediffinbox";
     type RobotsRule = (bool, String);
     type RobotsGroup = (Vec<String>, Vec<RobotsRule>);
