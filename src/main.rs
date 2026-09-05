@@ -4,13 +4,17 @@ use std::{
     io::Write,
     net::SocketAddr,
     path::{Path, PathBuf},
+    str::FromStr,
     time::Duration,
 };
 
 use anyhow::Context;
 use change_diff_inbox::{app_with_options, watcher};
 use chrono::Utc;
-use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
+use sqlx::{
+    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
+    SqlitePool,
+};
 use tokio::signal;
 use tracing_subscriber::EnvFilter;
 
@@ -46,15 +50,17 @@ async fn main() -> anyhow::Result<()> {
         session_secret = session_source,
         "runtime configuration ready"
     );
+    let connect_options = SqliteConnectOptions::from_str(&database_url)
+        .context("parse database URL")?
+        .create_if_missing(true)
+        .busy_timeout(Duration::from_secs(30));
     let pool = SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
+        .max_connections(1)
+        .acquire_timeout(Duration::from_secs(60))
+        .connect_with(connect_options)
         .await
         .context("connect database")?;
-    sqlx::migrate!()
-        .run(&pool)
-        .await
-        .context("run migrations")?;
+    run_migrations(&pool).await?;
     tokio::spawn(scheduler(pool.clone()));
 
     let port: u16 = env::var("PORT")
@@ -76,6 +82,21 @@ async fn main() -> anyhow::Result<()> {
     .with_graceful_shutdown(shutdown())
     .await?;
     Ok(())
+}
+
+async fn run_migrations(pool: &SqlitePool) -> anyhow::Result<()> {
+    let migrator = sqlx::migrate!();
+    for attempt in 1..=12 {
+        match migrator.run(pool).await {
+            Ok(()) => return Ok(()),
+            Err(error) if error.to_string().contains("database is locked") && attempt < 12 => {
+                tracing::warn!(attempt, "SQLite migration lock is busy; retrying");
+                tokio::time::sleep(Duration::from_secs(5)).await;
+            }
+            Err(error) => return Err(error).context("run migrations"),
+        }
+    }
+    unreachable!("migration retry loop returns on its final attempt")
 }
 
 async fn scheduler(pool: SqlitePool) {
