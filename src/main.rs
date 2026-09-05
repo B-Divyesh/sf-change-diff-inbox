@@ -53,6 +53,9 @@ async fn main() -> anyhow::Result<()> {
     let connect_options = SqliteConnectOptions::from_str(&database_url)
         .context("parse database URL")?
         .create_if_missing(true)
+        // The fleet's durable /data mount is SMB-backed. Dot-file locking is
+        // supported there; SQLite's default POSIX byte-range locks are not.
+        .vfs("unix-dotfile")
         .busy_timeout(Duration::from_secs(30));
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
