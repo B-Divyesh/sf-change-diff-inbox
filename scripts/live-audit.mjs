@@ -3,12 +3,13 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 const origin = process.argv[2] || 'https://change-diff-inbox.sociobot.in';
 const evidenceDir = '.factory/evidence/live';
+const auditIp = `203.0.113.${Math.floor(Math.random() * 200) + 1}`;
 await mkdir(evidenceDir, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
   viewport: { width: 1366, height: 900 },
-  extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.241' },
+  extraHTTPHeaders: { 'x-forwarded-for': auditIp },
 });
 const page = await context.newPage();
 page.setDefaultTimeout(10_000);
@@ -39,6 +40,7 @@ try {
   const label = await page
     .getByText('Demo — sample data, nothing is saved to your workspace')
     .textContent();
+  await page.locator('.change-card').first().waitFor();
   const count = await page.locator('.change-card').count();
   await page.locator('.change-toggle').first().click();
   const sample = await page.locator('.change-card').first().innerText();

@@ -1,0 +1,14 @@
+{
+  "requestedRatePerSecond": 100,
+  "seconds": 5,
+  "requests": 500,
+  "statuses": {
+    "200": 500
+  },
+  "latencyMs": {
+    "p50": 26,
+    "p95": 219,
+    "p99": 241,
+    "max": 340
+  }
+}

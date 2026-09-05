@@ -38,6 +38,7 @@ test.beforeEach(async ({page}) => {
 
 test('@claim:demo-sandbox opens populated sample data, resets it, and keeps the label visible', async ({page}) => {
   await page.goto('/');
+  const realBefore = await (await page.request.get('/api/stats')).json();
   await page.getByRole('link', {name:'Try it with sample data'}).click();
   await expect(page).toHaveURL(/\/demo$/);
   await expect(page.getByRole('heading', {name:'Review sample page changes'})).toBeVisible();
@@ -49,6 +50,9 @@ test('@claim:demo-sandbox opens populated sample data, resets it, and keeps the 
   await page.getByRole('button', {name:'Reset demo'}).click();
   await expect(page.locator('.change-card')).toHaveCount(3);
   await expect(page.getByText('Sample data reset.')).toBeVisible();
+  await page.getByRole('link', {name:'Start for real'}).click();
+  await expect(page).toHaveURL(/\/$/);
+  expect(await (await page.request.get('/api/stats')).json()).toEqual(realBefore);
 });
 
 test('@claim:tenant-isolation separates two browser workspaces at every record boundary', async () => {

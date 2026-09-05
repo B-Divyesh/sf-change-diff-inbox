@@ -1,0 +1,36 @@
+{
+  "firstScreen": {
+    "h1": "Review meaningful page changes",
+    "audience": "For developers monitoring documentation, status pages, and dashboards who need useful text changes instead of screenshot noise.",
+    "action": "Try it with sample data",
+    "facts": [
+      "Free: five sources with daily or weekly checks.",
+      "Private: each browser has an isolated workspace.",
+      "Offline: the app shell reloads after your first visit."
+    ]
+  },
+  "label": "Demo — sample data, nothing is saved to your workspace",
+  "count": 3,
+  "resetCount": 3,
+  "sample": "Northstar API limits\nSep 5, 2026, 11:14 PM\n19.0% CHANGED\nAdded 1,500 7,500 · 2 removal(s)\n#limits\n⌄\n− PREVIOUS\nPlan Requests Standard 1,000 per minute Pro 5,000 per minute\n＋ CURRENT\nPlan Requests Standard 1,500 per minute Pro 7,500 per minute\nSample source — no external request\nWas this alert useful?\nYes\nNo, noise\nArchive",
+  "realBefore": {
+    "sources": 0,
+    "unread": 0,
+    "useful": 0,
+    "rated": 0
+  },
+  "realAfter": {
+    "sources": 0,
+    "unread": 0,
+    "useful": 0,
+    "rated": 0
+  },
+  "origins": [
+    "https://change-diff-inbox.sociobot.in"
+  ],
+  "errors": [],
+  "mobileWidth": {
+    "scroll": 390,
+    "client": 390
+  }
+}

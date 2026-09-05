@@ -1,0 +1,19 @@
+{
+  "tenantIsolation": {
+    "secondSourceCount": 0,
+    "crossDeleteStatus": 404,
+    "firstSourceNames": [
+      "Isolation audit source"
+    ],
+    "ownerDeleteStatus": 204,
+    "ownerSourceCountAfterCleanup": 0
+  },
+  "rateLimit": {
+    "statuses": [
+      200,
+      429
+    ],
+    "limitedCount": 10,
+    "retryAfter": "1"
+  }
+}
