@@ -45,6 +45,8 @@ Negative list: generic SaaS dashboard, purple gradient blob, neon city, people, 
 
 Generation provenance: created for this product with the factory `factory-image` model on 2026-08-27. Original generated asset; no third-party source material. The exact prompt and generation metadata are stored beside the source image in `assets/src/hero-landscape.json`. Generated imagery is disclosed in the footer.
 
+The 1200×630 social card and 180×180 touch icon are crops derived locally from that original image on 2026-09-05. No new source art or third-party asset was introduced.
+
 ## Performance treatment
 
 The hero ships as responsive AVIF/WebP with explicit dimensions, with the mobile candidate under 300KB. It is the sole high-priority image. The product uses at most two self-hosted WOFF2 files and targets initial JS under 200KB and CSS under 50KB. Glass blur is reduced on narrow/low-power layouts and never required for hierarchy.
