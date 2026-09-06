@@ -3,10 +3,11 @@
 ## Result
 
 The repaired product is live at <https://change-diff-inbox.sociobot.in>.
-The deployed implementation SHA is
-`6adb29acea4f2784ae1fe1bd9b87e3d3c7b8cd9d`. Live `/health` returns that
-exact SHA. The final documentation SHA is the later report commit containing
-this file and is recorded in `/work/.evidence/qa-result.json`.
+The implementation candidate is `6adb29acea4f2784ae1fe1bd9b87e3d3c7b8cd9d`.
+Live `/health` currently returns the later documentation SHA
+`ddbe17f33c94740956f764545ec24fe33019ffc3`. The range contains no runtime
+source, frontend, migration, lockfile, or Dockerfile change; verification 3
+also matched the clean-built JS and CSS bytes to the live files exactly.
 
 ## What changed
 
@@ -119,3 +120,18 @@ sales are unavailable. Register the offer described in
 
 No AI feature was added: deterministic extraction and word diffs perform the
 brief's core job without sending monitored content to a model.
+
+## Verification 3
+
+Independent verification on 2026-09-06 passed with zero findings and zero
+untested claims. A clean clone passed `npm run check`, `npm test`, and the
+release build; every one of the 19 declared claim commands passed separately.
+Fresh desktop and phone checks confirmed the plain first screen, sample
+sandbox/reset/isolation, tenant boundaries, live rate limits (429 with
+`Retry-After`), keyboard/focus/reduced-motion behavior, legal/404 routes,
+privacy, offline shell, and no serious or critical Axe issues.
+
+Fresh mobile Lighthouse recorded performance 98, accessibility 100, best
+practices 100, SEO 100, LCP 1.70 s, CLS 0.082, and TBT 0 ms. Its JSON completed
+before a known post-run Chrome tab crash. See `.factory/verification-3.md` and
+`/work/.evidence/qa-report.md` for full evidence.
