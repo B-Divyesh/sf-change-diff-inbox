@@ -6,6 +6,7 @@ COPY package.json package-lock.json ./
 COPY frontend/package.json frontend/package.json
 RUN npm ci
 COPY frontend frontend
+COPY scripts/inject-404-build-id.mjs scripts/inject-404-build-id.mjs
 RUN npm --workspace frontend run build
 
 FROM rust:1-alpine AS backend
