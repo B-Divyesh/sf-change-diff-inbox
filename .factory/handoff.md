@@ -135,3 +135,20 @@ Fresh mobile Lighthouse recorded performance 98, accessibility 100, best
 practices 100, SEO 100, LCP 1.70 s, CLS 0.082, and TBT 0 ms. Its JSON completed
 before a known post-run Chrome tab crash. See `.factory/verification-3.md` and
 `/work/.evidence/qa-report.md` for full evidence.
+
+## Review 2
+
+Review 2 on 2026-09-06 is **FAIL — 1 high finding and 1 untested public
+claim**. No product code was changed. A fresh clone passed `npm run check`,
+`npm test`, the release build, and each of the 19 declared claim commands.
+Fresh live phone and desktop checks also passed the sample/reset/isolation,
+tenant, rate-limit, accessibility, route, offline, and privacy paths.
+
+The remaining release-contract gap is claim `schedules`: its tagged test proves
+daily and weekly record storage, but only checks that **Check now** is visible.
+It does not execute the promised manual check or assert an outcome, so the
+manual-check portion is untested under the claims contract. See
+`.factory/review-2.md` and `/work/.evidence/qa-report.md`. The implementation
+candidate is `6adb29acea4f2784ae1fe1bd9b87e3d3c7b8cd9d`; live `/health` remains
+the later documentation SHA `ddbe17f33c94740956f764545ec24fe33019ffc3`, with
+live built assets matching the candidate source.
