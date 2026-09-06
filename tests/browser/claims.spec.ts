@@ -7,6 +7,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { createHmac } from 'node:crypto';
 
 const baseURL = 'http://127.0.0.1:4173';
+const manualCheckFixtureURL = 'http://example.com/manual-check-fixture';
 const licenseKey = 'sb_license:change-diff-inbox';
 const verdictKey = `${licenseKey}:verdict`;
 let nextIp = 20;
@@ -93,15 +94,26 @@ test('@claim:semantic-threshold creates word changes above the threshold and ign
   await api.dispose();
 });
 
-test('@claim:schedules records daily and weekly schedules and provides manual checks', async ({page}) => {
+test('@claim:schedules records daily and weekly schedules and captures a baseline when manually checked', async ({page}) => {
   await page.goto('/');
-  expect((await page.request.post('/api/sources', {data:source('Daily source', 1440)})).status()).toBe(201);
-  expect((await page.request.post('/api/sources', {data:source('Weekly source', 10080)})).status()).toBe(201);
+  const dailyResponse = await page.request.post('/api/sources', {data:{...source('Daily source', 1440), url:manualCheckFixtureURL}});
+  expect(dailyResponse.status()).toBe(201);
+  const daily = await dailyResponse.json();
+  expect((await page.request.post('/api/sources', {data:{...source('Weekly source', 10080), url:manualCheckFixtureURL}})).status()).toBe(201);
   const records = await (await page.request.get('/api/sources')).json();
   expect(records.map((item:any) => item.interval_minutes).sort((a:number,b:number)=>a-b)).toEqual([1440,10080]);
   await page.reload();
   await page.getByRole('button', {name:'Sources', exact:true}).click();
-  await expect(page.getByRole('button', {name:'Check now'}).first()).toBeVisible();
+  const dailyRow = page.locator('.source-row').filter({has:page.getByRole('heading', {name:'Daily source', exact:true})});
+  await expect(dailyRow.getByRole('button', {name:'Check now'})).toBeVisible();
+  const checkResponse = page.waitForResponse(response => response.url().endsWith(`/api/sources/${daily.id}/check`) && response.request().method() === 'POST');
+  await dailyRow.getByRole('button', {name:'Check now'}).click();
+  const result = await checkResponse;
+  expect(result.status()).toBe(200);
+  await expect(page.locator('.toast')).toHaveText('Baseline captured. Future checks will create semantic diffs.');
+  await expect(dailyRow.getByText('Watching', {exact:true})).toBeVisible();
+  const updated = await (await page.request.get('/api/sources')).json();
+  expect(updated.find((item:any) => item.id === daily.id)).toMatchObject({last_status:'ready'});
 });
 
 test('@claim:safety-boundaries rejects authenticated and private targets and enforces robots rules', async () => {

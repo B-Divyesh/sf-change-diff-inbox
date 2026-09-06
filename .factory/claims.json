@@ -32,7 +32,7 @@
     "claim": "Sources store daily or weekly schedules and provide a manual check action.",
     "where": "source form, landing, README",
     "test": "npm run test:claims -- --grep @claim:schedules",
-    "sandbox": "fresh real workspace; create daily and weekly sources and inspect their API records and source controls"
+    "sandbox": "fresh real workspace; create daily and weekly sources, click Check now for a deterministic fixture, and require a captured baseline"
   },
   {
     "id": "safety-boundaries",
