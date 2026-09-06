@@ -12,7 +12,7 @@
   "label": "Demo — sample data, nothing is saved to your workspace",
   "count": 3,
   "resetCount": 3,
-  "sample": "Northstar API limits\nSep 5, 2026, 11:14 PM\n19.0% CHANGED\nAdded 1,500 7,500 · 2 removal(s)\n#limits\n⌄\n− PREVIOUS\nPlan Requests Standard 1,000 per minute Pro 5,000 per minute\n＋ CURRENT\nPlan Requests Standard 1,500 per minute Pro 7,500 per minute\nSample source — no external request\nWas this alert useful?\nYes\nNo, noise\nArchive",
+  "sample": "Northstar API limits\nSep 6, 2026, 1:41 AM\n19.0% CHANGED\nAdded 1,500 7,500 · 2 removal(s)\n#limits\n⌄\n− PREVIOUS\nPlan Requests Standard 1,000 per minute Pro 5,000 per minute\n＋ CURRENT\nPlan Requests Standard 1,500 per minute Pro 7,500 per minute\nSample source — no external request\nWas this alert useful?\nYes\nNo, noise\nArchive",
   "realBefore": {
     "sources": 0,
     "unread": 0,
