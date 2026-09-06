@@ -3,6 +3,7 @@ use axum::{
     http::{header, Request, StatusCode},
     Router,
 };
+use base64::Engine;
 use change_diff_inbox::app;
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
@@ -10,13 +11,17 @@ use sqlx::sqlite::SqlitePoolOptions;
 use tower::ServiceExt;
 
 async fn test_app() -> Router {
+    test_app_with_pool().await.0
+}
+
+async fn test_app_with_pool() -> (Router, sqlx::SqlitePool) {
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
         .connect("sqlite::memory:")
         .await
         .unwrap();
     sqlx::migrate!().run(&pool).await.unwrap();
-    app(pool, "frontend/dist")
+    (app(pool.clone(), "frontend/dist"), pool)
 }
 
 async fn json_body(response: axum::response::Response) -> Value {
@@ -218,6 +223,75 @@ async fn demo_is_seeded_resettable_and_separate() {
         .await
         .unwrap();
     assert_eq!(json_body(after).await.as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn expired_demo_workspace_is_rejected_then_replaced_with_a_new_sample() {
+    let (router, pool) = test_app_with_pool().await;
+    let expired_cookie = session(&router, true, "198.51.100.45").await;
+    let signed = expired_cookie.split_once('=').unwrap().1;
+    let encoded = signed.split('.').next().unwrap();
+    let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(encoded)
+        .unwrap();
+    let tenant_id = String::from_utf8(payload)
+        .unwrap()
+        .strip_prefix("demo:")
+        .unwrap()
+        .to_owned();
+    sqlx::query("UPDATE tenants SET expires_at='2000-01-01T00:00:00+00:00' WHERE id=?")
+        .bind(&tenant_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let rejected = router
+        .clone()
+        .oneshot(request("GET", "/api/demo/sources", &expired_cookie, None))
+        .await
+        .unwrap();
+    assert_eq!(rejected.status(), StatusCode::UNAUTHORIZED);
+
+    let replacement = router
+        .clone()
+        .oneshot(
+            Request::post("/api/demo/session")
+                .header(header::COOKIE, &expired_cookie)
+                .header("x-forwarded-for", "198.51.100.45")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(replacement.status(), StatusCode::OK);
+    let replacement_cookie = replacement
+        .headers()
+        .get(header::SET_COOKIE)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .split(';')
+        .next()
+        .unwrap()
+        .to_owned();
+    assert_ne!(replacement_cookie, expired_cookie);
+    let replacement_sources = router
+        .oneshot(request(
+            "GET",
+            "/api/demo/sources",
+            &replacement_cookie,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(
+        json_body(replacement_sources)
+            .await
+            .as_array()
+            .unwrap()
+            .len(),
+        3
+    );
 }
 
 #[tokio::test]

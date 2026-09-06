@@ -138,7 +138,7 @@ async fn start_real_session(
             id
         }
     };
-    session_response(&state, &headers, TenantKind::Real, &id, 31_536_000)
+    session_response(&state, &headers, TenantKind::Real, &id, 31_536_000, None)
 }
 
 async fn start_demo_session(
@@ -148,9 +148,9 @@ async fn start_demo_session(
     cleanup_expired_demos(&state).await?;
     let now = Utc::now().to_rfc3339();
     let existing = tenant_from_cookie(&state, &headers, TenantKind::Demo);
-    let id = if let Some(id) = existing {
-        sqlx::query_scalar::<_, String>(
-            "SELECT id FROM tenants WHERE id=? AND kind='demo' AND expires_at>?",
+    let existing = if let Some(id) = existing {
+        sqlx::query_as::<_, (String, String)>(
+            "SELECT id,expires_at FROM tenants WHERE id=? AND kind='demo' AND expires_at>?",
         )
         .bind(&id)
         .bind(&now)
@@ -159,23 +159,30 @@ async fn start_demo_session(
     } else {
         None
     };
-    let id = match id {
-        Some(id) => id,
+    let (id, expires_at, should_seed) = match existing {
+        Some((id, expires_at)) => (id, expires_at, false),
         None => {
-            let id = Uuid::new_v4().to_string();
-            sqlx::query(
-                "INSERT INTO tenants (id,kind,created_at,expires_at) VALUES (?,'demo',?,?)",
-            )
-            .bind(&id)
-            .bind(&now)
-            .bind((Utc::now() + Duration::hours(24)).to_rfc3339())
-            .execute(&state.pool)
-            .await?;
-            seed_demo(&state, &id).await?;
-            id
+            let expires_at = (Utc::now() + Duration::hours(24)).to_rfc3339();
+            (Uuid::new_v4().to_string(), expires_at, true)
         }
     };
-    session_response(&state, &headers, TenantKind::Demo, &id, 86_400)
+    if should_seed {
+        sqlx::query("INSERT INTO tenants (id,kind,created_at,expires_at) VALUES (?,'demo',?,?)")
+            .bind(&id)
+            .bind(&now)
+            .bind(&expires_at)
+            .execute(&state.pool)
+            .await?;
+        seed_demo(&state, &id).await?;
+    }
+    session_response(
+        &state,
+        &headers,
+        TenantKind::Demo,
+        &id,
+        86_400,
+        Some(&expires_at),
+    )
 }
 
 fn session_response(
@@ -184,10 +191,15 @@ fn session_response(
     kind: TenantKind,
     id: &str,
     max_age: u64,
+    expires_at: Option<&str>,
 ) -> Result<Response, ApiError> {
     let signed = sign(state, &format!("{}:{id}", kind.as_str()));
     let cookie = cookie_header(kind.cookie(), &signed, max_age, forwarded_https(headers));
-    let mut response = Json(json!({"ok":true, "workspace":kind.as_str()})).into_response();
+    let body = match expires_at {
+        Some(expires_at) => json!({"ok":true, "workspace":kind.as_str(), "expires_at":expires_at}),
+        None => json!({"ok":true, "workspace":kind.as_str()}),
+    };
+    let mut response = Json(body).into_response();
     response.headers_mut().insert(
         header::SET_COOKIE,
         HeaderValue::from_str(&cookie).map_err(|_| {

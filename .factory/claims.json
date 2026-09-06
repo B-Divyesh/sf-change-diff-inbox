@@ -4,21 +4,21 @@
     "claim": "One click opens three realistic sample changes in a separate 24-hour workspace that can be reset.",
     "where": "landing action, demo banner, README",
     "test": "npm run test:claims -- --grep @claim:demo-sandbox",
-    "sandbox": "fresh browser context at /demo; modify a review state, reset, and verify the original three records"
+    "sandbox": "fresh browser context at /demo; assert the issued sample session expires in 24 hours, modify a review state, reset, and verify the original three records"
   },
   {
     "id": "tenant-isolation",
     "claim": "Each browser workspace can read and change only its own sources and changes.",
     "where": "landing facts, privacy page, README",
     "test": "npm run test:claims -- --grep @claim:tenant-isolation",
-    "sandbox": "two fresh API cookie jars; create in one and attempt list and delete from the other"
+    "sandbox": "two fresh real and demo API cookie jars; create and list a source in one, then attempt cross-workspace source deletion and change listing and mutation from the other"
   },
   {
     "id": "structured-extraction",
     "claim": "The watcher extracts CSS-selected sections, tables, code blocks, and JSON-LD as normalized text.",
     "where": "landing how-it-works, source form, README",
     "test": "npm run test:claims -- --grep @claim:structured-extraction",
-    "sandbox": "demo workspace; submit bundled table, code, and JSON-LD HTML to the sample extractor and compare text"
+    "sandbox": "demo workspace; submit bundled CSS-selected section, table, code, and JSON-LD HTML to the sample extractor and compare normalized text"
   },
   {
     "id": "semantic-threshold",
@@ -53,14 +53,14 @@
     "claim": "The inbox stores unread, reviewed, archived, useful, and noise decisions.",
     "where": "inbox, README",
     "test": "npm run test:claims -- --grep @claim:review-states",
-    "sandbox": "demo workspace; inspect seeded states, change an unread item, and read the saved result"
+    "sandbox": "demo workspace; inspect seeded unread, reviewed, and archived states, then save both useful and noise decisions and read them back"
   },
   {
     "id": "csv-export",
     "claim": "CSV export includes every change currently displayed in the inbox.",
     "where": "inbox, landing how-it-works, README",
     "test": "npm run test:claims -- --grep @claim:csv-export",
-    "sandbox": "fresh /demo page; download CSV and assert its header and three sample rows"
+    "sandbox": "fresh /demo page; download CSV and assert its header, row count, and one row for every displayed sample change"
   },
   {
     "id": "responsive-keyboard",
@@ -99,10 +99,10 @@
   },
   {
     "id": "rate-limit",
-    "claim": "API request allowances return 429 with Retry-After when exceeded.",
+    "claim": "The API allows 40 reads per second and 10 writes per minute per forwarded client before returning 429 with Retry-After.",
     "where": "README operations",
     "test": "npm run test:claims -- --grep @claim:rate-limit",
-    "sandbox": "fresh API session and forwarded client address; send 50 concurrent reads"
+    "sandbox": "fresh forwarded client addresses; require 40 successful reads then a limited 41st read, and 10 successful session writes then a limited 11th write"
   },
   {
     "id": "delete-cascade",
@@ -120,10 +120,31 @@
   },
   {
     "id": "route-contract",
-    "claim": "Demo, privacy, terms, browser history, and missing-page routes have their own title and heading.",
+    "claim": "Demo, privacy, terms, browser history, and missing-page routes have their own title and heading; the missing page includes metadata and a build identity.",
     "where": "site navigation",
     "test": "npm run test:claims -- --grep @claim:route-contract",
-    "sandbox": "fresh browser; navigate legal pages, use Back, and request an unknown URL"
+    "sandbox": "fresh browser; load Demo, navigate legal pages, use Back, and request an unknown URL while checking its metadata, touch icon, and footer build identity"
+  },
+  {
+    "id": "failed-check-baseline",
+    "claim": "A failed check keeps the last good baseline visible.",
+    "where": "README safety and privacy",
+    "test": "npm run test:claims -- --grep @claim:failed-check-baseline",
+    "sandbox": "fresh real workspace and deterministic public fixture; capture a baseline, receive a later 503, recover, and require the next semantic diff to show the original baseline as its previous text"
+  },
+  {
+    "id": "server-network-boundary",
+    "claim": "The server contacts only added pages and their robots.txt files, plus the license service after an explicit license check.",
+    "where": "privacy page, README",
+    "test": "npm run test:claims -- --grep @claim:server-network-boundary",
+    "sandbox": "fresh real workspace and recording fixture; check one source, inspect its robots and page requests, then explicitly request license verification and inspect the one billing request"
+  },
+  {
+    "id": "access-boundaries",
+    "claim": "The watcher does not execute page scripts, log in, solve challenges, or bypass access controls.",
+    "where": "landing limits, README",
+    "test": "npm run test:claims -- --grep @claim:access-boundaries",
+    "sandbox": "fresh real workspace and controlled public fixtures; reject an authenticated URL, check a script-bearing page without its script running, and stop at one protected-page 403"
   },
   {
     "id": "restart-persistence",

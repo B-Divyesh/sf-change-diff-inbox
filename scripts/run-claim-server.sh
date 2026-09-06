@@ -20,6 +20,7 @@ export DATA_DIR="$claim_data_dir"
 export DATABASE_URL="sqlite://$claim_data_dir/claims.db?mode=rwc"
 export FRONTEND_DIR="frontend/dist"
 export SESSION_SECRET="claim-suite-session-secret-32-bytes-minimum"
+export BILLING_BASE_URL="http://billing.example.com"
 export HTTP_PROXY="http://127.0.0.1:4175"
 export http_proxy="$HTTP_PROXY"
 cargo run --quiet

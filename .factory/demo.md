@@ -22,4 +22,4 @@ Demo tenants expire after 24 hours. **Reset demo** deletes and reseeds only the 
 
 ## Verification
 
-Run `npm run test:claims -- --grep @claim:demo-sandbox`. The test changes demo state, resets it, confirms the sample returns, and separately verifies that the regular workspace stays empty.
+Run `npm run test:claims -- --grep @claim:demo-sandbox`. The test asserts the issued demo session has a 24-hour expiry, changes demo state, resets it, confirms the sample returns, and separately verifies that the regular workspace stays empty.

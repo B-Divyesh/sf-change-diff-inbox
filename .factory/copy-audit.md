@@ -1,6 +1,6 @@
 # Landing-page copy audit
 
-Audited 5 September 2026. Counts treat hyphenated terms and numbers as one word. No sentence exceeds 22 words. No banned marketing word appears.
+Audited 6 September 2026. Counts treat hyphenated terms and numbers as one word. No sentence exceeds 22 words. No banned marketing word appears.
 
 | Landing sentence | Words | Result |
 | --- | ---: | --- |
@@ -21,7 +21,7 @@ Audited 5 September 2026. Counts treat hyphenated terms and numbers as one word.
 | Later checks ignore changes below your threshold. | 7 | Pass |
 | Compare changed words, mark useful alerts, archive noise, or export the displayed inbox. | 13 | Pass |
 | Public HTML only | 3 | Pass |
-| No logins, browser automation, or anti-bot bypasses. | 7 | Pass |
+| The watcher does not execute scripts, log in, solve challenges, or bypass access controls. | 14 | Pass |
 | Private and local network addresses are blocked. | 7 | Pass |
 | Responses stop at 2 MB. | 5 | Pass |
 | Extracted text stops at 250 KB. | 6 | Pass |

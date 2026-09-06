@@ -1,5 +1,7 @@
 FROM node:22-alpine AS web
 WORKDIR /build
+ARG BUILD_SHA=dev
+ENV BUILD_SHA=$BUILD_SHA
 COPY package.json package-lock.json ./
 COPY frontend/package.json frontend/package.json
 RUN npm ci

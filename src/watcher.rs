@@ -24,21 +24,23 @@ pub async fn check_source(pool: &SqlitePool, tenant_id: &str, id: &str) -> Resul
             .ok_or_else(|| anyhow!("Source not found"))?;
 
     let now = Utc::now();
-    if let Some(last_checked) = source
-        .last_checked
-        .as_deref()
-        .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
-    {
-        if now
-            .signed_duration_since(last_checked.with_timezone(&Utc))
-            .num_seconds()
-            < 30
+    if source.last_status != "error" {
+        if let Some(last_checked) = source
+            .last_checked
+            .as_deref()
+            .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
         {
-            return Ok(CheckResult {
-                outcome: "cooldown".into(),
-                message: "This source was checked less than 30 seconds ago.".into(),
-                change_id: None,
-            });
+            if now
+                .signed_duration_since(last_checked.with_timezone(&Utc))
+                .num_seconds()
+                < 30
+            {
+                return Ok(CheckResult {
+                    outcome: "cooldown".into(),
+                    message: "This source was checked less than 30 seconds ago.".into(),
+                    change_id: None,
+                });
+            }
         }
     }
     let next = now + ChronoDuration::minutes(source.interval_minutes);

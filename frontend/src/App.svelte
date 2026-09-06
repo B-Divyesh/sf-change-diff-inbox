@@ -380,7 +380,7 @@
   </section>
   <section class="boundaries-section" aria-labelledby="boundaries-title">
     <div><p class="eyebrow">Limits and privacy</p><h2 id="boundaries-title">Public HTML only</h2></div>
-    <ul><li>No logins, browser automation, or anti-bot bypasses.</li><li>Private and local network addresses are blocked.</li><li>Responses stop at 2 MB. Extracted text stops at 250 KB.</li><li>The server checks robots.txt before each page request.</li></ul>
+    <ul><li>The watcher does not execute scripts, log in, solve challenges, or bypass access controls.</li><li>Private and local network addresses are blocked.</li><li>Responses stop at 2 MB. Extracted text stops at 250 KB.</li><li>The server checks robots.txt before each page request.</li></ul>
   </section>
   <section class="pricing-section" aria-labelledby="pricing-title">
     <div><p class="eyebrow">Plans</p><h2 id="pricing-title">Use five sources for free</h2><p>Daily and weekly checks are included. CSV export stays free.</p></div>
@@ -432,6 +432,7 @@
             {#if expanded===change.id}
               {@const pieces=diffWords(change.previous_text,change.current_text)}
               <div class="change-detail">
+                <h2 class="sr-only">Changed text for {change.source_name}</h2>
                 <div class="diff-grid"><div><h3><span class="minus">−</span> Previous</h3><pre>{#each pieces.old as part}<span class:removed={part.type==='removed'}>{part.value}</span>{/each}</pre></div><div><h3><span class="plus">＋</span> Current</h3><pre>{#each pieces.next as part}<span class:added={part.type==='added'}>{part.value}</span>{/each}</pre></div></div>
                 <div class="review-bar">{#if isDemo}<em>Sample source — no external request</em>{:else}<a href={change.source_url} target="_blank" rel="noreferrer">Open source <span class="sr-only">in a new tab</span> ↗</a>{/if}<span>Was this alert useful?</span><button class:chosen={change.useful===1} on:click={() => review(change,'reviewed',true)} aria-label="Mark this alert useful">Yes</button><button class:chosen={change.useful===0} on:click={() => review(change,'reviewed',false)} aria-label="Mark this alert as noise">No, noise</button><button on:click={() => review(change,'archived')}>Archive</button></div>
               </div>

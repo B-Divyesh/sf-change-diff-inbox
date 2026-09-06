@@ -33,6 +33,42 @@ const source = (name:string, interval = 1440) => ({
   interval_minutes: interval,
 });
 
+async function fixture(path:string) {
+  const response = await fetch(`http://127.0.0.1:4175/__fixture/${path}`);
+  expect(response.ok).toBeTruthy();
+  return response.json();
+}
+
+function parseCsvRow(row:string) {
+  const values:string[] = [];
+  let index = 0;
+  while (index < row.length) {
+    if (row[index] !== '"') {
+      const end = row.indexOf(',', index);
+      values.push(row.slice(index, end === -1 ? undefined : end));
+      index = end === -1 ? row.length : end + 1;
+      continue;
+    }
+    index += 1;
+    let value = '';
+    while (index < row.length) {
+      if (row[index] === '"' && row[index + 1] === '"') {
+        value += '"';
+        index += 2;
+      } else if (row[index] === '"') {
+        index += 1;
+        break;
+      } else {
+        value += row[index];
+        index += 1;
+      }
+    }
+    values.push(value);
+    if (row[index] === ',') index += 1;
+  }
+  return values;
+}
+
 test.beforeEach(async ({page}) => {
   await page.setExtraHTTPHeaders({'x-forwarded-for': ip()});
 });
@@ -44,6 +80,13 @@ test('@claim:demo-sandbox opens populated sample data, resets it, and keeps the 
   await expect(page).toHaveURL(/\/demo$/);
   await expect(page.getByRole('heading', {name:'Review sample page changes'})).toBeVisible();
   await expect(page.getByText('Demo — sample data, nothing is saved to your workspace')).toBeVisible();
+  const checkedAt = Date.now();
+  const session = await page.request.post('/api/demo/session');
+  expect(session.ok()).toBeTruthy();
+  const expiresIn = Date.parse((await session.json()).expires_at) - checkedAt;
+  expect(expiresIn).toBeGreaterThanOrEqual(86_390_000);
+  expect(expiresIn).toBeLessThanOrEqual(86_410_000);
+  expect(session.headers()['set-cookie']).toMatch(/cdi_demo=.*Max-Age=86400/);
   await expect(page.locator('.change-card')).toHaveCount(3);
   await page.locator('.change-toggle').first().click();
   await expect(page.getByRole('heading', {name:'Previous'})).toBeVisible();
@@ -65,12 +108,22 @@ test('@claim:tenant-isolation separates two browser workspaces at every record b
   expect(await (await second.get('/api/sources')).json()).toEqual([]);
   expect((await second.delete(`/api/sources/${record.id}`)).status()).toBe(404);
   expect((await (await first.get('/api/sources')).json()).map((item:any) => item.name)).toEqual(['Only in first workspace']);
-  await first.dispose(); await second.dispose();
+  const firstDemo = await apiSession(true);
+  const secondDemo = await apiSession(true);
+  const firstChanges = await (await firstDemo.get('/api/demo/changes')).json();
+  const secondChanges = await (await secondDemo.get('/api/demo/changes')).json();
+  const firstChange = firstChanges[0];
+  expect(secondChanges.map((item:any) => item.id)).not.toContain(firstChange.id);
+  expect((await secondDemo.patch(`/api/demo/changes/${firstChange.id}`, {data:{review_state:'archived'}})).status()).toBe(404);
+  const ownerChanges = await (await firstDemo.get('/api/demo/changes')).json();
+  expect(ownerChanges.find((item:any) => item.id === firstChange.id)).toMatchObject({review_state:firstChange.review_state});
+  await first.dispose(); await second.dispose(); await firstDemo.dispose(); await secondDemo.dispose();
 });
 
-test('@claim:structured-extraction extracts selected tables, code blocks, and JSON-LD into text', async () => {
+test('@claim:structured-extraction extracts selected sections, tables, code blocks, and JSON-LD into text', async () => {
   const api = await apiSession(true);
   const cases = [
+    {mode:'selector', selector:'#release', html:'<main><section id="release">Version 2.4 ships today</section><section>ignore</section></main>', expected:'Version 2.4 ships today'},
     {mode:'table', selector:'#plans', html:'<table id="plans"><tr><td>Pro</td><td>$12</td></tr></table><p>ignore</p>', expected:'Pro $12'},
     {mode:'code', selector:'pre', html:'<pre>npm install package</pre>', expected:'npm install package'},
     {mode:'jsonld', selector:'', html:'<script type="application/ld+json">{"status":"ready"}</script>', expected:'{"status":"ready"}'},
@@ -146,14 +199,18 @@ test('@claim:review-states saves unread, reviewed, archived, useful, and noise d
   const changes = await (await api.get('/api/demo/changes')).json();
   expect(new Set(changes.map((item:any) => item.review_state))).toEqual(new Set(['unread','reviewed','archived']));
   const target = changes.find((item:any) => item.review_state === 'unread');
+  const positive = changes.find((item:any) => item.review_state === 'reviewed');
+  expect((await api.patch(`/api/demo/changes/${positive.id}`, {data:{review_state:'reviewed',useful:true}})).ok()).toBeTruthy();
   expect((await api.patch(`/api/demo/changes/${target.id}`, {data:{review_state:'reviewed',useful:false}})).ok()).toBeTruthy();
   const reviewed = await (await api.get('/api/demo/changes?state=reviewed')).json();
+  expect(reviewed.some((item:any) => item.id === positive.id && item.useful === 1)).toBeTruthy();
   expect(reviewed.some((item:any) => item.id === target.id && item.useful === 0)).toBeTruthy();
   await api.dispose();
 });
 
 test('@claim:csv-export downloads every displayed sample change as CSV', async ({page}) => {
   await page.goto('/demo');
+  const displayedSources = await page.locator('.change-card .change-meta b').allTextContents();
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', {name:'Export CSV'}).click();
   const download = await downloadPromise;
@@ -161,8 +218,10 @@ test('@claim:csv-export downloads every displayed sample change as CSV', async (
   let csv = '';
   for await (const chunk of stream!) csv += chunk.toString();
   expect(download.suggestedFilename()).toBe('change-diff-inbox.csv');
-  expect(csv.split('\n')).toHaveLength(4);
-  expect(csv).toContain('Northstar API limits');
+  const rows = csv.trim().split('\n').map(parseCsvRow);
+  expect(rows[0]).toEqual(['source','url','detected','change_percent','summary','review_state','useful']);
+  expect(rows).toHaveLength(displayedSources.length + 1);
+  expect(rows.slice(1).map(row => row[0])).toEqual(displayedSources);
 });
 
 test('@claim:responsive-keyboard keeps mobile content contained, keyboard focus visible, and serious accessibility errors absent', async ({page}) => {
@@ -230,15 +289,22 @@ test('@claim:paid-entitlement accepts short schedules and more than five sources
   await bootstrap.dispose(); await api.dispose();
 });
 
-test('@claim:rate-limit returns 429 and Retry-After beyond the live request allowance', async () => {
-  const clientIp = ip();
-  const api = await request.newContext({baseURL, extraHTTPHeaders:{'x-forwarded-for':`${clientIp}, 10.1.2.3`}});
-  expect((await api.post('/api/session')).ok()).toBeTruthy();
-  const responses = await Promise.all(Array.from({length:50}, () => api.get('/api/stats')));
-  const limited = responses.find(response => response.status() === 429);
-  expect(limited).toBeTruthy();
-  expect(limited!.headers()['retry-after']).toMatch(/^\d+$/);
-  await api.dispose();
+test('@claim:rate-limit allows exactly 40 reads per second and 10 writes per minute before 429', async () => {
+  const readApi = await request.newContext({baseURL, extraHTTPHeaders:{'x-forwarded-for':'203.0.113.239'}});
+  expect((await readApi.post('/api/session')).ok()).toBeTruthy();
+  const reads = await Promise.all(Array.from({length:40}, () => readApi.get('/api/stats')));
+  expect(reads.map(response => response.status())).toEqual(Array(40).fill(200));
+  const readLimited = await readApi.get('/api/stats');
+  expect(readLimited.status()).toBe(429);
+  expect(readLimited.headers()['retry-after']).toMatch(/^\d+$/);
+  const writeApi = await request.newContext({baseURL, extraHTTPHeaders:{'x-forwarded-for':'203.0.113.240, 10.1.2.3'}});
+  const writes = [];
+  for (let count=0; count<10; count++) writes.push(await writeApi.post('/api/session'));
+  expect(writes.map(response => response.status())).toEqual(Array(10).fill(200));
+  const writeLimited = await writeApi.post('/api/session');
+  expect(writeLimited.status()).toBe(429);
+  expect(writeLimited.headers()['retry-after']).toMatch(/^\d+$/);
+  await readApi.dispose(); await writeApi.dispose();
 });
 
 test('@claim:delete-cascade removes a source and all of its saved changes', async () => {
@@ -264,7 +330,10 @@ test('@claim:license-cache uses a daily cached verdict without blocking the free
   expect(requests.some(url => url.includes('/api/license'))).toBeFalsy();
 });
 
-test('@claim:route-contract gives demo, legal, back-navigation, and 404 pages correct titles and headings', async ({page}) => {
+test('@claim:route-contract gives demo, legal, back-navigation, and 404 pages correct titles, headings, and missing-page metadata', async ({page}) => {
+  await page.goto('/demo');
+  await expect(page).toHaveTitle('Demo — Change Diff Inbox');
+  await expect(page.getByRole('heading', {name:'Review sample page changes'})).toBeVisible();
   await page.goto('/privacy');
   await expect(page).toHaveTitle('Privacy — Change Diff Inbox');
   await page.getByRole('link', {name:'Terms', exact:true}).first().click();
@@ -275,6 +344,83 @@ test('@claim:route-contract gives demo, legal, back-navigation, and 404 pages co
   expect(missing?.status()).toBe(404);
   await expect(page).toHaveTitle('Page not found — Change Diff Inbox');
   await expect(page.locator('h1')).toHaveText('This page does not exist');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /Return to Change Diff Inbox/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://change-diff-inbox.sociobot.in/404');
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Page not found — Change Diff Inbox');
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', '/apple-touch-icon.png');
+  await expect(page.locator('footer small')).toHaveText(/Built by Param Factory · Build (dev|[0-9a-f]{7,})/);
+});
+
+test('expanded diff details keep an ordered heading outline', async ({page}) => {
+  await page.goto('/demo');
+  await page.locator('.change-toggle').first().click();
+  expect(await page.locator('main h1, main h2, main h3').evaluateAll(headings => headings.map(heading => heading.tagName))).toEqual(['H1','H2','H3','H3']);
+});
+
+test('@claim:failed-check-baseline keeps the last good baseline after a failed later check', async () => {
+  const api = await apiSession();
+  const created = await api.post('/api/sources', {data:{...source('Baseline survives a failed check'), url:'http://example.com/failed-check-baseline'}});
+  expect(created.status()).toBe(201);
+  const record = await created.json();
+  const baselineResponse = await api.post(`/api/sources/${record.id}/check`);
+  expect(baselineResponse.status()).toBe(200);
+  expect((await baselineResponse.json()).outcome).toBe('baseline');
+  await new Promise(resolveWait => setTimeout(resolveWait, 30_500));
+  const failure = await api.post(`/api/sources/${record.id}/check`);
+  expect(failure.ok()).toBeTruthy();
+  expect((await failure.json()).outcome).toBe('error');
+  const afterFailure = (await (await api.get('/api/sources')).json()).find((item:any) => item.id === record.id);
+  expect(afterFailure).toMatchObject({last_status:'error'});
+  expect(afterFailure.last_error).toContain('Source returned HTTP 503');
+  const recovery = await api.post(`/api/sources/${record.id}/check`);
+  expect(recovery.ok()).toBeTruthy();
+  expect((await recovery.json()).outcome).toBe('changed');
+  const recoveredChange = (await (await api.get('/api/changes')).json()).find((item:any) => item.source_id === record.id);
+  expect(recoveredChange).toMatchObject({
+    previous_text:'First reliable baseline for failure recovery.',
+    current_text:'Recovered fixture after the failed check.',
+  });
+  await api.dispose();
+});
+
+test('@claim:server-network-boundary sends only the selected page and robots request, plus an explicit license check', async () => {
+  const api = await apiSession();
+  await fixture('reset');
+  const created = await api.post('/api/sources', {data:{...source('Outbound boundary fixture'), url:'http://example.com/network-boundary'}});
+  expect(created.status()).toBe(201);
+  const record = await created.json();
+  expect((await (await api.post(`/api/sources/${record.id}/check`)).json()).outcome).toBe('baseline');
+  expect((await fixture('network-log')).requests.map((item:any) => item.path)).toEqual(['/robots.txt','/network-boundary']);
+  await fixture('reset');
+  const license = await api.post('/api/license', {data:{license:'explicit-test-license'}});
+  expect(license.ok()).toBeTruthy();
+  const licenseRequests = (await fixture('network-log')).requests;
+  expect(licenseRequests).toHaveLength(1);
+  expect(licenseRequests[0]).toMatchObject({host:'billing.example.com', path:'/api/v1/products/change-diff-inbox/verify'});
+  await api.dispose();
+});
+
+test('@claim:access-boundaries rejects logins and does not execute scripts, solve challenges, or bypass access controls', async () => {
+  const api = await apiSession();
+  await fixture('reset');
+  const scriptSource = await api.post('/api/sources', {data:{...source('Script fixture'), url:'http://example.com/script-free-source'}});
+  expect(scriptSource.status()).toBe(201);
+  const scriptRecord = await scriptSource.json();
+  expect((await (await api.post(`/api/sources/${scriptRecord.id}/check`)).json()).outcome).toBe('baseline');
+  expect((await fixture('script-status')).scriptRuns).toBe(0);
+  expect((await api.post('/api/sources', {data:{...source('Authenticated fixture'), url:'https://user:pass@example.com/'}})).status()).toBe(400);
+  await fixture('reset');
+  const challengeSource = await api.post('/api/sources', {data:{...source('Protected fixture'), url:'http://example.com/access-challenge'}});
+  expect(challengeSource.status()).toBe(201);
+  const challengeRecord = await challengeSource.json();
+  const checked = await api.post(`/api/sources/${challengeRecord.id}/check`);
+  expect(checked.ok()).toBeTruthy();
+  expect((await checked.json()).outcome).toBe('error');
+  const challengeStatus = await fixture('challenge-status');
+  expect(challengeStatus.challengeRequests).toBe(1);
+  expect(challengeStatus.scriptRuns).toBe(0);
+  await api.dispose();
 });
 
 test('@claim:restart-persistence retains one workspace and its source after a clean server restart', async () => {
