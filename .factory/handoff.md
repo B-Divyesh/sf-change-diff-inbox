@@ -1,37 +1,47 @@
-# Change Diff Inbox — verification 4 handoff
+# Change Diff Inbox — review 3 handoff
 
 ## Result
 
-Independent QA passed for <https://change-diff-inbox.sociobot.in>.
+Strict review of <https://change-diff-inbox.sociobot.in> failed.
 
-- Verdict: **PASS** — zero findings and zero untested claims.
+- Verdict: **FAIL** — 3 findings and 10 untested public claim groups.
+- Severity: 1 high, 2 medium, 0 low.
 - Implementation reviewed: `8e2ac0fa76e88194420a79ae9654064b45974eb3`.
-- Documentation revision reviewed: `aae3dee9f87bc986c66d5a097442b58f48fa9902`.
-- Live health returns the documentation SHA. The implementation-to-documentation
-  range contains no runtime changes, and clean frontend assets byte-match live.
+- Documentation checkout: `5311eaea1339812d25140697c7d13436c504df9b`.
+- Live health identity: `aae3dee9f87bc986c66d5a097442b58f48fa9902`.
+- The implementation-to-live and implementation-to-documentation ranges
+  contain only reports and stored evidence. Clean frontend assets byte-match
+  live.
 
-The product helps developers review meaningful changes to selected
-documentation, status pages, and dashboards. On the first screen, the job is
-**Review meaningful page changes**, the audience is named directly, and the
-first action is **Try it with sample data**.
+No product code was changed under this review-only work order.
 
-## What was verified
+## What passed
 
-- A clean checkout passed `npm ci`, `npm run check`, `npm test`, and a release
-  build. Tests: 3 frontend, 4 Rust unit, 6 API integration, and 19 browser
-  claims.
-- All 19 exact commands declared in `.factory/claims.json` passed separately.
-  The repaired schedules claim clicks **Check now** and verifies baseline,
-  confirmation, and saved `ready` state.
-- Fresh desktop and phone live browsers passed first-screen copy, demo/reset
-  isolation, keyboard/focus, 200% text resize, reduced motion, Axe, offline
-  shell, privacy requests, routes, legal titles, history focus, links, and
-  designed 404 behavior.
-- Live backend checks passed tenant isolation, manual baseline/cooldown,
-  invalid-selector recovery, owner cleanup, health, and rate limiting with
-  `429` plus `Retry-After: 1`.
-- `verify-url.sh` passed. The clean production bundle is 26.97 KB gzip JS and
-  6.21 KB gzip CSS.
+- Fresh desktop and phone first screens name the job **Review meaningful page
+  changes**, name the developer audience, and show **Try it with sample data**
+  before scrolling.
+- The demo contains three realistic changes, keeps its sample-data label,
+  resets, and does not change the regular workspace.
+- Clean `npm ci`, `npm run check`, `npm test`, and the release build passed.
+  All 19 declared claim commands also passed separately.
+- Live source and change isolation, invalid-selector recovery, cleanup, health,
+  and 429 with `Retry-After` passed. The restart-persistence claim passed.
+- Keyboard, focus, 200% resize, reduced motion, offline shell, privacy requests,
+  route titles, history focus, links, legal pages, and the deliberate HTTP 404
+  behavior passed their reviewed paths.
+- Mobile Lighthouse: performance 97, accessibility 100, best practices 100,
+  SEO 100; LCP 1.76 s, CLS 0.082, TBT 124 ms.
+
+## Findings to repair
+
+1. **High — claim proof:** six listed claim tests are incomplete and four
+   public claim groups have no complete tagged test. See R3-01 for the exact
+   inventory. A passing command is not enough; each promised result needs an
+   observable assertion in its own claim sandbox.
+2. **Medium — heading order:** expanded demo diffs produce `h1 → h3 → h3`.
+   Add an h2 grouping level or make Previous/Current h2 headings.
+3. **Medium — 404 structure:** keep the intentional 404 status, but add the
+   required description, canonical/social/touch metadata and footer build ID.
 
 ## Run and verify
 
@@ -40,25 +50,15 @@ npm ci
 npm run check
 npm test
 BUILD_SHA="$(git rev-parse HEAD)" npm run build
-npm start
 ```
 
-Open `/demo` for the isolated sample. Each claim can run using the exact
-command in `.factory/claims.json`. To check a built binary identity, serve the
-release binary on port 18080 with `BUILD_SHA` set, then run:
-
-```sh
-EXPECTED_BUILD_SHA="$(git rev-parse HEAD)" npm run verify:build-identity
-```
-
-## Known external dependency
-
-The $39 Pro sales flow remains unavailable until the separate Sociobot
-billing-registration operator registers the offer. The UI says so plainly; no
-mock checkout is presented, and the free core remains usable. This is not a
-runtime finding in the verified product boundary.
+Then run every exact command in `.factory/claims.json` separately and audit the
+assertions against the full public wording. Open `/demo`, expand a change, and
+inspect the screen-reader heading list. Request an unknown route and inspect
+its head metadata and footer as well as its expected HTTP 404 status.
 
 ## Evidence
 
-The QA record is `.factory/verification-4.md`. External evidence is under
-`/work/.evidence/verification-4/`.
+The review is `.factory/review-3.md`. External evidence is under
+`/work/.evidence/change-diff-inbox-review-3/`. The required summary copies are
+`/work/.evidence/qa-report.md` and `/work/.evidence/qa-result.json`.
